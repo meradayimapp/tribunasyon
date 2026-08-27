@@ -2,6 +2,7 @@
 @php
     $isLong = Str::length($post->body) > 220;
     $preview = Str::limit($post->body, 220);
+    $hasMedia = $post->media->isNotEmpty();
 @endphp
 
 <article {{ $attributes->class(['post-card']) }} x-data="{ expanded: false, comments: {{ (int) $post->comments_count }} }" x-on:comment-created.window="comments++">
@@ -14,10 +15,8 @@
         </header>
     @endif
 
-    @if($post->image_path)
-        <a class="post-media-frame" href="{{ route('posts.show', [$post->team, $post]) }}" aria-label="Gönderiyi ve yorumları aç">
-            <img class="post-media" src="{{ Storage::url($post->image_path) }}" alt="{{ $post->team->name }} gönderi görseli" width="1080" height="1350" loading="lazy" decoding="async">
-        </a>
+    @if($hasMedia)
+        <x-post-media-carousel :post="$post" />
     @else
         <div class="text-post">
             <p>
@@ -30,7 +29,7 @@
     <div class="post-body">
         <livewire:post-actions :post="$post" :key="'post-actions-'.$post->id" />
 
-        @if($post->image_path)
+        @if($hasMedia)
             <p class="post-copy"><span class="post-copy-text" x-show="!expanded">{{ $preview }}</span>
                 @if($isLong)<span class="post-copy-text" x-show="expanded" x-cloak>{{ $post->body }}</span>@endif
                 @if($isLong)<button class="more-button" type="button" @click="expanded = !expanded" x-text="expanded ? 'daha az göster' : 'devamını gör'"></button>@endif

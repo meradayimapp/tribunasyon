@@ -33,7 +33,7 @@ class CommunitySearchService
             ->select(['id', 'team_id', 'type', 'body', 'image_path', 'status', 'published_at'])
             ->published()
             ->whereRaw("body LIKE ? ESCAPE '!'", [$pattern])
-            ->with('team:id,name,slug,short_name,logo,primary_color')
+            ->with(['team:id,name,slug,short_name,logo,primary_color', 'coverMedia'])
             ->latest('published_at')
             ->limit($limit)
             ->get();

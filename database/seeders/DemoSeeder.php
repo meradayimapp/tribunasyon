@@ -49,15 +49,22 @@ class DemoSeeder extends Seeder
 
         foreach ($teams as $index => $team) {
             foreach ($messages[$index] as $position => $body) {
-                Post::create([
+                $post = Post::create([
                     'team_id' => $team->id,
                     'created_by' => $creators[$index]->id,
                     'type' => $position === 3 ? PostType::Text : PostType::Image,
                     'body' => $body,
-                    'image_path' => $position === 3 ? null : ($position % 2 === 0 ? 'demo/stadium.png' : 'demo/matchday.png'),
                     'status' => PostStatus::Published,
                     'published_at' => now()->subHours(($index * 5) + $position + 1),
                 ]);
+
+                if ($position !== 3) {
+                    $post->media()->create([
+                        'type' => 'image',
+                        'path' => $position % 2 === 0 ? 'demo/stadium.png' : 'demo/matchday.png',
+                        'sort_order' => 1,
+                    ]);
+                }
             }
         }
 

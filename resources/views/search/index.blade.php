@@ -37,8 +37,8 @@
             <div class="search-post-list">
                 @forelse($posts as $post)
                     <a class="search-post-card" href="{{ route('posts.show', [$post->team, $post]) }}">
-                        @if($post->image_path)
-                            <img src="{{ Storage::url($post->image_path) }}" alt="" width="64" height="80" loading="lazy">
+                        @if($post->coverMedia)
+                            <img src="{{ Storage::url($post->coverMedia->path) }}" alt="" width="64" height="80" loading="lazy">
                         @endif
                         <span><strong>{{ Str::limit($post->body, 150) }}</strong><small>{{ $post->team->name }} · {{ $post->published_at->diffForHumans() }}</small></span>
                         <i class="bi bi-chevron-right" aria-hidden="true"></i>

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -48,6 +49,16 @@ class Post extends Model
     public function rootComments(): HasMany
     {
         return $this->hasMany(Comment::class)->whereNull('parent_id');
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(PostMedia::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function coverMedia(): HasOne
+    {
+        return $this->hasOne(PostMedia::class)->ofMany('sort_order', 'min');
     }
 
     public function likes(): MorphMany

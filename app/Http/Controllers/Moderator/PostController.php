@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Moderator;
 
 use App\Enums\PostStatus;
-use App\Enums\PostType;
 use App\Http\Controllers\Controller;
 use App\Models\Post;
 use App\Models\Team;
-use App\Services\MediaStorageService;
+use App\Services\PostMediaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 use Illuminate\View\View;
 
 class PostController extends Controller
@@ -27,13 +27,13 @@ class PostController extends Controller
         return view('moderator.posts.form', ['post' => new Post, 'teams' => $request->user()->moderatedTeams()->orderBy('name')->get()]);
     }
 
-    public function store(Request $request, MediaStorageService $media): RedirectResponse
+    public function store(Request $request, PostMediaService $media): RedirectResponse
     {
         $team = Team::findOrFail($request->integer('team_id'));
         $this->authorize('create', [Post::class, $team]);
-        $data = $this->validated($request, $media);
+        [$data, $uploads, $order] = $this->validated($request);
         $data['created_by'] = $request->user()->id;
-        Post::create($data);
+        $media->save(new Post, $data, $uploads, $order);
 
         return redirect()->route('moderator.posts.index')->with('success', 'Gönderi kaydedildi.');
     }
@@ -42,13 +42,16 @@ class PostController extends Controller
     {
         $this->authorize('update', $post);
 
-        return view('moderator.posts.form', ['post' => $post, 'teams' => $request->user()->moderatedTeams()->orderBy('name')->get()]);
+        return view('moderator.posts.form', ['post' => $post->load('media'), 'teams' => $request->user()->moderatedTeams()->orderBy('name')->get()]);
     }
 
-    public function update(Request $request, Post $post, MediaStorageService $media): RedirectResponse
+    public function update(Request $request, Post $post, PostMediaService $media): RedirectResponse
     {
         $this->authorize('update', $post);
-        $post->update($this->validated($request, $media, $post));
+        $team = Team::findOrFail($request->integer('team_id'));
+        $this->authorize('create', [Post::class, $team]);
+        [$data, $uploads, $order] = $this->validated($request, $post);
+        $media->save($post, $data, $uploads, $order);
 
         return redirect()->route('moderator.posts.index')->with('success', 'Gönderi güncellendi.');
     }
@@ -61,21 +64,39 @@ class PostController extends Controller
         return back()->with('success', 'Gönderi silindi.');
     }
 
-    private function validated(Request $request, MediaStorageService $media, ?Post $post = null): array
+    private function validated(Request $request, ?Post $post = null): array
     {
-        $data = $request->validate([
+        $validator = validator($request->all(), [
             'team_id' => ['required', 'exists:teams,id'],
             'body' => ['required', 'string', 'max:5000'],
             'status' => ['required', Rule::enum(PostStatus::class)],
+            'images' => ['nullable', 'array', 'max:10'],
+            'images.*' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:8192'],
             'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:8192'],
+            'media_order' => ['nullable', 'array', 'max:10'],
+            'media_order.*' => ['required', 'string', 'distinct', 'regex:/^(existing|new):[0-9]+$/'],
+            'media_editor_present' => ['nullable', 'boolean'],
         ]);
-        if ($request->hasFile('image')) {
-            $data['image_path'] = $media->replace($post?->image_path, $request->file('image'), 'posts');
-        }
-        $data['type'] = isset($data['image_path']) || $post?->image_path ? PostType::Image : PostType::Text;
-        $data['published_at'] = $data['status'] === PostStatus::Published->value ? ($post?->published_at ?? now()) : null;
-        unset($data['image']);
+        $validator->after(function (Validator $validator) use ($request): void {
+            $imageFiles = $request->file('images', []);
+            $multiple = is_array($imageFiles) ? count($imageFiles) : ($imageFiles ? 1 : 0);
+            $legacy = $request->hasFile('image') ? 1 : 0;
 
-        return $data;
+            if ($multiple + $legacy > PostMediaService::MAX_MEDIA) {
+                $validator->errors()->add('images', 'Bir gönderide en fazla 10 görsel olabilir.');
+            }
+        });
+        $data = $validator->validate();
+        $uploads = array_values($request->file('images', []));
+
+        if ($request->hasFile('image')) {
+            $uploads[] = $request->file('image');
+        }
+
+        $data['published_at'] = $data['status'] === PostStatus::Published->value ? ($post?->published_at ?? now()) : null;
+        $order = $request->boolean('media_editor_present') ? array_values($data['media_order'] ?? []) : null;
+        unset($data['image'], $data['images'], $data['media_order'], $data['media_editor_present']);
+
+        return [$data, $uploads, $order];
     }
 }
