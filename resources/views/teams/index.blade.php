@@ -1,7 +1,8 @@
 @extends('layouts.app')
 @section('title', 'Takımlar')
+@section('mobile-title', 'Takımlar')
 @section('content')
-<div class="feed-column mx-auto" style="max-width:900px">
+<div class="directory-shell mx-auto">
     <div class="page-head"><div class="eyebrow">Topluluklar</div><h1 class="page-title">Takımını bul</h1></div>
     <div class="team-grid">
         @foreach($teams as $team)

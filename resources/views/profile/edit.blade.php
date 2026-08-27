@@ -1,5 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Profili düzenle')
+@section('mobile-title', 'Profili düzenle')
+@section('mobile-back', route('profile.show', $user))
 @section('content')
 <div class="auth-wrap mt-0"><div class="auth-card"><h1 class="h4 fw-bold mb-4">Profili düzenle</h1>
 <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">@csrf @method('PUT')

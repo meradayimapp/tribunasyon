@@ -15,6 +15,8 @@ class Comments extends Component
 
     public ?int $parentId = null;
 
+    public array $expandedReplies = [];
+
     public function replyTo(int $commentId): void
     {
         $comment = $this->post->comments()->whereNull('parent_id')->findOrFail($commentId);
@@ -24,6 +26,19 @@ class Comments extends Component
     public function cancelReply(): void
     {
         $this->parentId = null;
+    }
+
+    public function toggleReplies(int $commentId): void
+    {
+        $comment = $this->post->comments()->whereNull('parent_id')->findOrFail($commentId);
+
+        if (isset($this->expandedReplies[$comment->id])) {
+            unset($this->expandedReplies[$comment->id]);
+
+            return;
+        }
+
+        $this->expandedReplies[$comment->id] = true;
     }
 
     public function submit(): mixed
@@ -41,7 +56,13 @@ class Comments extends Component
             $this->parentId = $parent->id;
         }
 
-        $this->post->comments()->create(['user_id' => auth()->id(), 'parent_id' => $this->parentId, 'body' => $this->body]);
+        $replyParentId = $this->parentId;
+        $this->post->comments()->create(['user_id' => auth()->id(), 'parent_id' => $replyParentId, 'body' => $this->body]);
+
+        if ($replyParentId) {
+            $this->expandedReplies[$replyParentId] = true;
+        }
+
         $this->reset('body', 'parentId');
         $this->dispatch('comment-created');
 
@@ -63,9 +84,27 @@ class Comments extends Component
 
     public function render(): View
     {
-        $comments = $this->post->rootComments()->with(['user', 'replies.user'])->withCount('likes')
-            ->with(['replies' => fn ($query) => $query->withCount('likes')])->latest()->get();
+        $expandedIds = array_map('intval', array_keys(array_filter($this->expandedReplies)));
+        $viewerId = auth()->id();
+        $query = $this->post->rootComments()->with('user')->withCount(['likes', 'replies'])->latest();
 
-        return view('livewire.comments', compact('comments'));
+        if ($viewerId) {
+            $query->withExists(['likes as liked_by_viewer' => fn ($likes) => $likes->where('user_id', $viewerId)]);
+        }
+
+        if ($expandedIds !== []) {
+            $query->with(['replies' => function ($replies) use ($expandedIds, $viewerId): void {
+                $replies->whereIn('parent_id', $expandedIds)->with('user')->withCount('likes');
+
+                if ($viewerId) {
+                    $replies->withExists(['likes as liked_by_viewer' => fn ($likes) => $likes->where('user_id', $viewerId)]);
+                }
+            }]);
+        }
+
+        $comments = $query->get();
+        $totalComments = $this->post->comments()->count();
+
+        return view('livewire.comments', compact('comments', 'totalComments'));
     }
 }

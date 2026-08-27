@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Maçlar')
+@section('mobile-title', 'Maçlar')
 @section('content')
 <div class="feed-column mx-auto">
     <div class="page-head"><div class="eyebrow">Mock maç merkezi</div><h1 class="page-title mb-1">Bugünün maçları</h1><p class="muted mb-4">{{ $date->translatedFormat('d F Y, l') }}</p></div>
