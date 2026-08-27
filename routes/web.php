@@ -10,6 +10,7 @@ use App\Http\Controllers\MatchController;
 use App\Http\Controllers\Moderator;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,7 @@ Route::get('/takimlar', [TeamController::class, 'index'])->name('teams.index');
 Route::get('/takim/{team}', [TeamController::class, 'show'])->name('teams.show');
 Route::get('/takim/{team}/gonderi/{post}', [PostController::class, 'show'])->scopeBindings()->name('posts.show');
 Route::get('/maclar', MatchController::class)->name('matches.index');
+Route::get('/ara', SearchController::class)->name('search.index');
 Route::get('/profil/{user}', [ProfileController::class, 'show'])->name('profile.show');
 
 Route::middleware('guest')->group(function (): void {

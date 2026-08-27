@@ -31,9 +31,8 @@
         <livewire:post-actions :post="$post" :key="'post-actions-'.$post->id" />
 
         @if($post->image_path)
-            <p class="post-copy">
-                <span x-show="!expanded">{{ $preview }}</span>
-                @if($isLong)<span x-show="expanded" x-cloak>{{ $post->body }}</span>@endif
+            <p class="post-copy"><span class="post-copy-text" x-show="!expanded">{{ $preview }}</span>
+                @if($isLong)<span class="post-copy-text" x-show="expanded" x-cloak>{{ $post->body }}</span>@endif
                 @if($isLong)<button class="more-button" type="button" @click="expanded = !expanded" x-text="expanded ? 'daha az göster' : 'devamını gör'"></button>@endif
             </p>
         @elseif($isLong)

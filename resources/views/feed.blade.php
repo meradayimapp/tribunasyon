@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Ana Sayfa')
+@section('title', 'Akış')
 @section('mobile-title', config('app.name'))
 @section('content')
 <div class="feed-layout">

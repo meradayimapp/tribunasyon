@@ -7,6 +7,7 @@ use App\Models\Comment;
 use App\Models\Post;
 use App\Services\MockFootballDataService;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,5 +26,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Relation::enforceMorphMap(['post' => Post::class, 'comment' => Comment::class]);
+        Paginator::useBootstrapFive();
     }
 }

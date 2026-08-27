@@ -5,5 +5,5 @@
     @empty
         <div class="empty-state"><i class="bi bi-stars"></i><strong>Akışın henüz sakin</strong><p>Yeni gönderiler burada görünecek.</p></div>
     @endforelse
-    @if($posts->hasPages())<div class="feed-pagination">{{ $posts->links() }}</div>@endif
+    @if($posts->hasPages())<div class="feed-pagination">{{ $posts->links('pagination::simple-bootstrap-5') }}</div>@endif
 </div>
