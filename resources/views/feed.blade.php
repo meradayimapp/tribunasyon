@@ -11,7 +11,7 @@
         <div class="aside-card">
             <div class="aside-heading"><span>Topluluklar</span><a href="{{ route('teams.index') }}">Tümünü gör</a></div>
             @foreach($suggestedTeams as $team)
-                <a class="team-row" href="{{ route('teams.show', $team) }}"><x-team-logo :team="$team" size="sm" /><span class="flex-grow-1"><strong>{{ $team->name }}</strong><small class="d-block muted">{{ number_format($team->followers_count, 0, ',', '.') }} takipçi</small></span><i class="bi bi-chevron-right muted"></i></a>
+                <a class="team-row" href="{{ route('teams.show', $team) }}"><x-team-logo :team="$team" size="xs" /><span class="flex-grow-1"><strong>{{ $team->name }}</strong><small class="d-block muted">{{ number_format($team->followers_count, 0, ',', '.') }} takipçi</small></span><i class="bi bi-chevron-right muted"></i></a>
             @endforeach
         </div>
     </aside>

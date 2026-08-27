@@ -14,6 +14,6 @@
     @if($user->favoriteTeam)
         <section class="profile-section"><div class="section-heading"><h2>Favori takım</h2></div><a class="favorite-team" href="{{ route('teams.show', $user->favoriteTeam) }}"><x-team-logo :team="$user->favoriteTeam" size="md" /><span><strong>{{ $user->favoriteTeam->name }}</strong><small>Favori takım</small></span><i class="bi bi-chevron-right"></i></a></section>
     @endif
-    <section class="profile-section"><div class="section-heading"><h2>Takip ettiği takımlar</h2><span>{{ $user->followedTeams->count() }}</span></div><div class="followed-teams">@forelse($user->followedTeams as $team)<a href="{{ route('teams.show',$team) }}"><x-team-logo :team="$team" size="sm" /><strong>{{ $team->name }}</strong></a>@empty<span class="muted">Henüz takım takip etmiyor.</span>@endforelse</div></section>
+    <section class="profile-section"><div class="section-heading"><h2>Takip ettiği takımlar</h2><span>{{ $user->followedTeams->count() }}</span></div><div class="followed-teams">@forelse($user->followedTeams as $team)<a href="{{ route('teams.show',$team) }}"><x-team-logo :team="$team" size="xs" /><strong>{{ $team->name }}</strong></a>@empty<span class="muted">Henüz takım takip etmiyor.</span>@endforelse</div></section>
 </div>
 @endsection

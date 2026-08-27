@@ -81,11 +81,14 @@ button { touch-action: manipulation; }
 .post-team-copy { min-width: 0; display: grid; line-height: 1.25; }
 .post-team-copy strong { overflow: hidden; font-size: .9rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .post-team-copy small { margin-top: 2px; color: var(--muted); font-size: .72rem; font-weight: 400; }
-.team-logo { flex: none; display: grid; place-items: center; overflow: hidden; border: 2px solid rgba(255, 255, 255, .92); border-radius: 50%; color: #fff; background: var(--team-primary, #273c75); box-shadow: 0 0 0 1px rgba(15, 20, 30, .12); font-weight: 600; }
-.team-logo img, .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.team-logo { flex: none; display: inline-grid; place-items: center; overflow: visible; border: 0; border-radius: 0; color: inherit; background: transparent; box-shadow: none; font-weight: 600; }
+.team-logo img { width: 100%; height: 100%; display: block; border: 0; border-radius: 0; background: transparent; box-shadow: none; object-fit: contain; }
+.team-logo-placeholder { overflow: hidden; border-radius: 50%; color: #fff; background: var(--team-primary, #273c75); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.team-logo-xs { width: 30px; height: 30px; font-size: .58rem; }
 .team-logo-sm { width: 36px; height: 36px; font-size: .66rem; }
-.team-logo-md { width: 50px; height: 50px; font-size: .75rem; }
-.team-logo-xl { width: 72px; height: 72px; font-size: 1rem; }
+.team-logo-md { width: 46px; height: 46px; font-size: .72rem; }
+.team-logo-xl { width: 82px; height: 82px; font-size: 1rem; }
 .avatar { flex: none; display: grid; place-items: center; overflow: hidden; border-radius: 50%; color: #58606e; background: #e3e7ef; font-weight: 600; }
 .avatar-sm { width: 34px; height: 34px; font-size: .68rem; }
 .avatar-lg { width: 88px; height: 88px; font-size: 1.12rem; }
@@ -262,7 +265,7 @@ button { touch-action: manipulation; }
   .loading-indicator { padding: 0 14px; }
   .team-hero { height: 178px; margin-top: -14px; margin-bottom: 14px; border-radius: 0; }
   .team-hero-content { right: 14px; bottom: 14px; left: 14px; gap: 10px; }
-  .team-logo-xl { width: 58px; height: 58px; font-size: .8rem; }
+  .team-logo-xl { width: 72px; height: 72px; font-size: .8rem; }
   .team-identity { gap: 10px; }
   .team-identity span { font-size: .63rem; }
   .team-identity h1 { max-width: 165px; font-size: 1.08rem; }
@@ -306,7 +309,7 @@ button { touch-action: manipulation; }
   .app-main { padding-top: 10px; }
   .post-header, .post-body, .team-feed-heading, .comments-section, .profile-shell { padding-right: 12px; padding-left: 12px; }
   .team-identity h1 { max-width: 130px; font-size: 1rem; }
-  .team-logo-xl { width: 52px; height: 52px; }
+  .team-logo-xl { width: 68px; height: 68px; }
   .follow-button { min-width: 76px; padding-right: .55rem; padding-left: .55rem; }
   .comment-submit { min-width: 48px; }
   .match-card { font-size: .82rem; }
