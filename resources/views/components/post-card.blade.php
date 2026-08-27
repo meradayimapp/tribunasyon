@@ -16,7 +16,7 @@
 
     @if($post->image_path)
         <a class="post-media-frame" href="{{ route('posts.show', [$post->team, $post]) }}" aria-label="Gönderiyi ve yorumları aç">
-            <img class="post-media" src="{{ Storage::url($post->image_path) }}" alt="{{ $post->team->name }} gönderi görseli" loading="lazy" decoding="async">
+            <img class="post-media" src="{{ Storage::url($post->image_path) }}" alt="{{ $post->team->name }} gönderi görseli" width="1080" height="1350" loading="lazy" decoding="async">
         </a>
     @else
         <div class="text-post">
