@@ -1,0 +1,5 @@
+<div class="post-actions" x-data="{ shared: false, async share() { const url = @js(route('posts.show', [$post->team, $post])); try { if (navigator.share) { await navigator.share({ title: @js($post->team->name), url }); } else { await navigator.clipboard.writeText(url); this.shared = true; setTimeout(() => this.shared = false, 1800); } } catch (e) {} } }">
+    <button type="button" class="action-btn {{ $liked ? 'liked' : '' }}" wire:click="toggleLike" wire:loading.attr="disabled" aria-label="{{ $liked ? 'Beğeniyi kaldır' : 'Gönderiyi beğen' }}"><i class="bi bi-heart{{ $liked ? '-fill' : '' }}"></i><span>{{ number_format($likesCount, 0, ',', '.') }}</span></button>
+    <a class="action-btn" href="{{ route('posts.show', [$post->team, $post]) }}#yorumlar"><i class="bi bi-chat"></i><span>{{ number_format($commentsCount, 0, ',', '.') }}</span></a>
+    <button type="button" class="action-btn" @click="share"><i class="bi bi-send"></i><span x-text="shared ? 'Kopyalandı' : 'Paylaş'">Paylaş</span></button>
+</div>

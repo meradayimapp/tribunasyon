@@ -1,0 +1,1 @@
+<div class="follow-wrap"><span class="follow-count">{{ number_format($followersCount, 0, ',', '.') }} takipçi</span><button type="button" wire:click="toggle" wire:loading.attr="disabled" class="btn {{ $following ? 'btn-light' : 'btn-primary' }}"><span wire:loading.remove>{{ $following ? 'Takiptesin' : 'Takip et' }}</span><span wire:loading>İşleniyor…</span></button></div>

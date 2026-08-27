@@ -1,0 +1,5 @@
+@extends('layouts.app')
+@section('title', 'Yorumlar · Admin')
+@section('content')
+<div class="panel-shell"><div class="eyebrow">Yönetim</div><h1 class="page-title">Yorumlar</h1><x-panel-nav /><div class="surface table-responsive"><table class="table mb-0"><thead><tr><th>Yorum</th><th>Kullanıcı</th><th>Takım</th><th>Tarih</th><th></th></tr></thead><tbody>@foreach($comments as $comment)<tr><td style="max-width:420px">{{ Str::limit($comment->body,120) }} @if($comment->trashed())<span class="status-pill">Silindi</span>@endif</td><td>{{ '@'.$comment->user->username }}</td><td>{{ $comment->post->team->name }}</td><td>{{ $comment->created_at->diffForHumans() }}</td><td>@if($comment->trashed())<form method="POST" action="{{ route('admin.comments.restore',$comment->id) }}">@csrf<button class="btn btn-sm btn-outline-success">Geri al</button></form>@else<form method="POST" action="{{ route('admin.comments.destroy',$comment) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Sil</button></form>@endif</td></tr>@endforeach</tbody></table></div><div class="mt-3">{{ $comments->links() }}</div></div>
+@endsection

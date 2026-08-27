@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title', 'Kullanıcılar · Admin')
+@section('content')
+<div class="panel-shell"><div class="eyebrow">Yönetim</div><h1 class="page-title">Kullanıcılar</h1><x-panel-nav /><form class="mb-3" method="GET"><div class="input-group"><input class="form-control" name="q" value="{{ request('q') }}" placeholder="Ad, kullanıcı adı veya e-posta ara"><button class="btn btn-dark">Ara</button></div></form>
+<div class="surface table-responsive"><table class="table mb-0"><thead><tr><th>Kullanıcı</th><th>Rol</th><th>Durum</th><th>Favori</th><th></th></tr></thead><tbody>@foreach($users as $user)<tr><td><div class="d-flex gap-2 align-items-center"><x-avatar :user="$user" size="sm" /><div><strong>{{ $user->name }}</strong><small class="d-block muted">{{ '@'.$user->username }} · {{ $user->email }}</small></div></div></td><td>{{ $user->role->label() }}</td><td><span class="status-pill {{ $user->isActive() ? 'live':'' }}">{{ $user->isActive() ? 'Aktif':'Askıda' }}</span></td><td>{{ $user->favoriteTeam?->short_name ?? '—' }}</td><td><a class="btn btn-sm btn-light" href="{{ route('admin.users.edit',$user) }}">Yönet</a></td></tr>@endforeach</tbody></table></div><div class="mt-3">{{ $users->links() }}</div></div>
+@endsection
