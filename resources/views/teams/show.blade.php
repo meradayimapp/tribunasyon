@@ -7,7 +7,7 @@
     <section class="team-hero" style="--team-primary:{{ $team->primary_color }}">
         @if($team->cover_image)<img class="team-cover" src="{{ Storage::url($team->cover_image) }}" alt="{{ $team->name }} kapak görseli" loading="eager" decoding="async">@endif
         <div class="team-hero-content">
-            <div class="team-identity"><x-team-logo :team="$team" size="xl" /><div><span>Takım topluluğu</span><h1>{{ $team->name }}</h1></div></div>
+            <div class="team-identity"><x-team-logo :team="$team" size="xl" /><div><span>Takım topluluğu</span><div class="team-name-line"><h1>{{ $team->name }}</h1><x-organization-badge :team="$team" size="hero" /></div></div></div>
             <livewire:follow-team :team="$team" />
         </div>
     </section>

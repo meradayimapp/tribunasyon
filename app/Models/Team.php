@@ -14,7 +14,7 @@ class Team extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'slug', 'short_name', 'logo', 'cover_image', 'primary_color', 'secondary_color', 'status'];
+    protected $fillable = ['name', 'slug', 'short_name', 'logo', 'cover_image', 'organization_badge', 'primary_color', 'secondary_color', 'status'];
 
     protected function casts(): array
     {

@@ -9,7 +9,7 @@
         <header class="post-header">
             <a class="post-team" href="{{ route('teams.show', $post->team) }}">
                 <x-team-logo :team="$post->team" size="sm" />
-                <span class="post-team-copy"><strong>{{ $post->team->name }}</strong><small>{{ $post->published_at->diffForHumans() }}</small></span>
+                <span class="post-team-copy"><span class="post-team-name-line"><strong>{{ $post->team->name }}</strong><x-organization-badge :team="$post->team" /></span><small>{{ $post->published_at->diffForHumans() }}</small></span>
             </a>
         </header>
     @endif
