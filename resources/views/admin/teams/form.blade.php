@@ -2,6 +2,8 @@
 @section('title', $team->exists ? 'Takımı düzenle' : 'Takım oluştur')
 @section('content')
 @php
+    $selectedTeamLogo = old('logo', $selectedTeamLogo);
+    $teamLogoUrls = $teamLogos->pluck('url', 'path');
     $selectedOrganizationBadge = old('organization_badge', $team->organization_badge);
     $availableOrganizationBadgePaths = $organizationBadges->pluck('path');
 @endphp
@@ -20,7 +22,23 @@
             <div class="col-md-4"><label class="form-label">Kısa ad</label><input class="form-control" name="short_name" value="{{ old('short_name', $team->short_name) }}" maxlength="12" required></div>
             <div class="col-md-4"><label class="form-label">Ana renk</label><input type="color" class="form-control form-control-color w-100" name="primary_color" value="{{ old('primary_color', $team->primary_color ?: '#2357d8') }}"></div>
             <div class="col-md-4"><label class="form-label">İkincil renk</label><input type="color" class="form-control form-control-color w-100" name="secondary_color" value="{{ old('secondary_color', $team->secondary_color ?: '#ffffff') }}"></div>
-            <div class="col-md-6"><label class="form-label">Logo</label><input type="file" class="form-control" name="logo_file" accept="image/jpeg,image/png,image/webp"></div>
+            <div class="col-md-6" x-data="{ selectedLogo: @js($selectedTeamLogo), logoUrls: @js($teamLogoUrls) }">
+                <label class="form-label" for="team-logo">Logo</label>
+                <div class="team-logo-selector">
+                    <select class="form-select" id="team-logo" name="logo" x-model="selectedLogo">
+                        <option value="">Logo yok</option>
+                        @foreach($teamLogos as $logo)
+                            <option value="{{ $logo['path'] }}" @selected($selectedTeamLogo === $logo['path'])>{{ $logo['filename'] }}</option>
+                        @endforeach
+                    </select>
+                    <div class="team-logo-selector-preview" x-cloak x-show="selectedLogo && logoUrls[selectedLogo]">
+                        <img :src="logoUrls[selectedLogo]" alt="Seçilen takım logosu önizlemesi">
+                    </div>
+                </div>
+                <div class="form-text">
+                    {{ $teamLogos->isEmpty() ? 'Logo klasöründe desteklenen dosya bulunamadı.' : $teamLogos->count().' logo bulundu.' }}
+                </div>
+            </div>
             <div class="col-md-6"><label class="form-label">Kapak</label><input type="file" class="form-control" name="cover_file" accept="image/jpeg,image/png,image/webp"></div>
 
             <div class="col-12">

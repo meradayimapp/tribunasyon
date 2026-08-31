@@ -22,8 +22,8 @@
             <div class="search-team-list">
                 @forelse($teams as $team)
                     <a class="search-team-card" href="{{ route('teams.show', $team) }}">
-                        <x-team-logo :team="$team" size="md" />
-                        <span><strong>{{ $team->name }}</strong><small>{{ $team->short_name }}</small></span>
+                        <x-team-logo :team="$team" size="search" />
+                        <span class="search-team-card-copy"><strong>{{ $team->name }}</strong><small>{{ $team->short_name }}</small></span>
                         <i class="bi bi-chevron-right" aria-hidden="true"></i>
                     </a>
                 @empty

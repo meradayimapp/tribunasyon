@@ -21,7 +21,9 @@ class SearchTest extends TestCase
 
         $this->get(route('search.index', ['q' => 'Fener']))
             ->assertOk()
-            ->assertSee($team->name);
+            ->assertSee($team->name)
+            ->assertSee('team-logo-search', false)
+            ->assertSee('search-team-card-copy', false);
     }
 
     public function test_published_post_can_be_found_by_body(): void
