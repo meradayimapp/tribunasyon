@@ -22,4 +22,11 @@ class MediaStorageService
 
         return $path;
     }
+
+    public function delete(string|array|null $paths): void
+    {
+        if ($paths) {
+            Storage::disk('public')->delete($paths);
+        }
+    }
 }

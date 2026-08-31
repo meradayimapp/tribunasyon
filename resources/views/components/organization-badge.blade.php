@@ -1,11 +1,11 @@
 @props(['team', 'size' => 'feed'])
-@php($badge = $team->organization_badge ? app(\App\Services\OrganizationBadgeCatalog::class)->find($team->organization_badge) : null)
-@if($badge)
+@php($organization = $team->organization)
+@if($organization?->status === \App\Enums\OrganizationStatus::Active && $organization->logoUrl())
     <img
         class="organization-badge organization-badge--{{ $size }}"
-        src="{{ $badge['url'] }}"
-        alt="{{ $badge['label'] }} rozeti"
-        title="{{ $badge['label'] }}"
+        src="{{ $organization->logoUrl() }}"
+        alt="{{ $organization->name }} rozeti"
+        title="{{ $organization->name }}"
         loading="lazy"
         decoding="async"
     >

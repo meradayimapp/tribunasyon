@@ -44,6 +44,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/', Admin\DashboardController::class)->name('dashboard');
     Route::resource('teams', Admin\TeamController::class);
     Route::post('teams/{team}/restore', [Admin\TeamController::class, 'restore'])->name('teams.restore');
+    Route::resource('organizations', Admin\OrganizationController::class)->except('show');
     Route::resource('users', Admin\UserController::class)->only(['index', 'edit', 'update']);
     Route::resource('moderators', Admin\ModeratorController::class)->only(['index', 'edit', 'update'])->parameters(['moderators' => 'user']);
     Route::resource('posts', Admin\PostController::class)->only(['index', 'destroy']);

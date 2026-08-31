@@ -1,9 +1,5 @@
 @props(['team', 'size' => 'sm'])
-@php
-    $logoUrl = $team->logo
-        ? (str_starts_with($team->logo, 'images/') ? asset($team->logo) : Storage::url($team->logo))
-        : null;
-@endphp
+@php($logoUrl = $team->logoUrl())
 <span class="team-logo team-logo-{{ $size }} {{ $logoUrl ? 'team-logo-image' : 'team-logo-placeholder' }}" style="--team-primary: {{ $team->primary_color }}" title="{{ $team->name }}">
     @if($logoUrl)
         <img src="{{ $logoUrl }}" alt="{{ $team->name }} logosu" loading="lazy" decoding="async">

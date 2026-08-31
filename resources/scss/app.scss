@@ -326,21 +326,18 @@ button { touch-action: manipulation; }
 .media-editor-controls button.remove { color: #ffb4c1; }
 .media-editor-message { margin-top: 8px; color: var(--danger); font-size: .76rem; font-weight: 500; }
 .media-editor-help { margin: 9px 0 0; color: var(--muted); font-size: .73rem; }
-.organization-badge-picker { min-width: 0; margin: 4px 0 0; padding: 0; border: 0; }
-.organization-badge-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-.organization-badge-option { min-width: 0; min-height: 64px; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); cursor: pointer; transition: border-color .15s ease, background .15s ease, box-shadow .15s ease; }
-.organization-badge-option:hover { border-color: var(--line-strong); background: var(--hover); }
-.organization-badge-option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px rgba(31, 94, 255, .08); }
-.organization-badge-option input { width: 17px; height: 17px; flex: none; margin: 0; accent-color: var(--accent); }
-.organization-badge-option img { width: 40px; height: 40px; display: block; flex: none; border: 0; background: transparent; box-shadow: none; object-fit: contain; }
-.organization-badge-option > span:last-child { min-width: 0; display: grid; }
-.organization-badge-option strong { overflow: hidden; font-size: .8rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.organization-badge-option small { overflow: hidden; margin-top: 2px; color: var(--muted); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
-.organization-badge-none { width: 40px; height: 40px; display: grid; place-items: center; flex: none; color: var(--muted); font-size: 1.15rem; }
-.organization-badge-help { margin: 9px 0 0; color: var(--muted); font-size: .76rem; }
-.team-logo-selector { display: grid; grid-template-columns: minmax(0, 1fr) 56px; align-items: center; gap: 12px; }
-.team-logo-selector-preview { width: 56px; height: 56px; display: grid; place-items: center; }
-.team-logo-selector-preview img { width: 52px; height: 52px; max-width: 52px; max-height: 52px; display: block; border: 0; border-radius: 0; background: transparent; box-shadow: none; object-fit: contain; }
+.managed-image-upload-body { min-width: 0; display: flex; align-items: center; gap: 14px; }
+.managed-image-preview { width: 92px; height: 92px; display: grid; place-items: center; flex: 0 0 92px; overflow: hidden; border: 1px dashed var(--line-strong); border-radius: 13px; color: var(--muted); background: var(--surface-soft); }
+.managed-image-preview.has-image { border-style: solid; background: transparent; }
+.managed-image-preview > i { font-size: 1.35rem; }
+.managed-image-preview img { width: 100%; height: 100%; display: block; border: 0; background: transparent; box-shadow: none; object-fit: contain; }
+.managed-image-actions { min-width: 0; display: flex; align-items: center; flex: 1; flex-wrap: wrap; gap: 8px; }
+.managed-image-actions .btn { display: inline-flex; align-items: center; gap: 7px; }
+.managed-image-actions small { width: 100%; color: var(--muted); font-size: .72rem; }
+.admin-organization-identity { min-width: 190px; display: flex; align-items: center; gap: 11px; }
+.admin-organization-identity > img { width: 42px; height: 42px; display: block; flex: 0 0 42px; border: 0; background: transparent; box-shadow: none; object-fit: contain; }
+.admin-organization-identity > span { min-width: 0; display: grid; }
+.admin-organization-identity small { margin-top: 2px; color: var(--muted); font-size: .7rem; }
 .stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
 .stat { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .stat strong { display: block; font-size: 1.55rem; font-weight: 600; letter-spacing: -.04em; }
@@ -452,7 +449,8 @@ button { touch-action: manipulation; }
   .media-editor-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .media-editor-controls { right: 3px; bottom: 3px; left: 3px; gap: 1px; padding: 3px; }
   .media-editor-controls button { width: 27px; height: 27px; }
-  .organization-badge-options { grid-template-columns: 1fr; }
+  .managed-image-upload-body { align-items: flex-start; }
+  .managed-image-preview { width: 80px; height: 80px; flex-basis: 80px; }
   .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .table-responsive { border: 1px solid var(--line); border-radius: 12px; }
   .match-card { margin-right: 14px; margin-left: 14px; padding: 15px 12px; gap: 7px; }

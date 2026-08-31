@@ -1,12 +1,6 @@
 @extends('layouts.app')
 @section('title', $team->exists ? 'Takımı düzenle' : 'Takım oluştur')
 @section('content')
-@php
-    $selectedTeamLogo = old('logo', $selectedTeamLogo);
-    $teamLogoUrls = $teamLogos->pluck('url', 'path');
-    $selectedOrganizationBadge = old('organization_badge', $team->organization_badge);
-    $availableOrganizationBadgePaths = $organizationBadges->pluck('path');
-@endphp
 <div class="panel-shell">
     <div class="eyebrow">Yönetim</div>
     <h1 class="page-title">{{ $team->exists ? 'Takımı düzenle' : 'Yeni takım' }}</h1>
@@ -22,49 +16,39 @@
             <div class="col-md-4"><label class="form-label">Kısa ad</label><input class="form-control" name="short_name" value="{{ old('short_name', $team->short_name) }}" maxlength="12" required></div>
             <div class="col-md-4"><label class="form-label">Ana renk</label><input type="color" class="form-control form-control-color w-100" name="primary_color" value="{{ old('primary_color', $team->primary_color ?: '#2357d8') }}"></div>
             <div class="col-md-4"><label class="form-label">İkincil renk</label><input type="color" class="form-control form-control-color w-100" name="secondary_color" value="{{ old('secondary_color', $team->secondary_color ?: '#ffffff') }}"></div>
-            <div class="col-md-6" x-data="{ selectedLogo: @js($selectedTeamLogo), logoUrls: @js($teamLogoUrls) }">
-                <label class="form-label" for="team-logo">Logo</label>
-                <div class="team-logo-selector">
-                    <select class="form-select" id="team-logo" name="logo" x-model="selectedLogo">
-                        <option value="">Logo yok</option>
-                        @foreach($teamLogos as $logo)
-                            <option value="{{ $logo['path'] }}" @selected($selectedTeamLogo === $logo['path'])>{{ $logo['filename'] }}</option>
-                        @endforeach
-                    </select>
-                    <div class="team-logo-selector-preview" x-cloak x-show="selectedLogo && logoUrls[selectedLogo]">
-                        <img :src="logoUrls[selectedLogo]" alt="Seçilen takım logosu önizlemesi">
-                    </div>
-                </div>
-                <div class="form-text">
-                    {{ $teamLogos->isEmpty() ? 'Logo klasöründe desteklenen dosya bulunamadı.' : $teamLogos->count().' logo bulundu.' }}
-                </div>
-            </div>
-            <div class="col-md-6"><label class="form-label">Kapak</label><input type="file" class="form-control" name="cover_file" accept="image/jpeg,image/png,image/webp"></div>
 
-            <div class="col-12">
-                <fieldset class="organization-badge-picker">
-                    <legend class="form-label">Organizasyon rozeti</legend>
-                    <div class="organization-badge-options">
-                        <label class="organization-badge-option">
-                            <input type="radio" name="organization_badge" value="" @checked(! $selectedOrganizationBadge || ! $availableOrganizationBadgePaths->contains($selectedOrganizationBadge))>
-                            <span class="organization-badge-none"><i class="bi bi-slash-circle" aria-hidden="true"></i></span>
-                            <span><strong>Organizasyon rozeti yok</strong><small>Takım adının yanında rozet gösterilmez.</small></span>
-                        </label>
-                        @foreach($organizationBadges as $badge)
-                            <label class="organization-badge-option">
-                                <input type="radio" name="organization_badge" value="{{ $badge['path'] }}" @checked($selectedOrganizationBadge === $badge['path'])>
-                                <img src="{{ $badge['url'] }}" alt="" loading="lazy">
-                                <span><strong>{{ $badge['label'] }}</strong><small>{{ basename($badge['path']) }}</small></span>
-                            </label>
-                        @endforeach
-                    </div>
-                    @if($organizationBadges->isEmpty())
-                        <p class="organization-badge-help">Desteklenen organizasyon görseli bulunamadı.</p>
-                    @endif
-                </fieldset>
+            <div class="col-md-6">
+                <x-admin.image-upload
+                    name="logo_file"
+                    label="Takım logosu"
+                    :current-url="$team->logoUrl()"
+                    remove-name="remove_logo"
+                />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Kapak</label>
+                <input type="file" class="form-control" name="cover_file" accept="image/jpeg,image/png,image/webp">
+                <div class="form-text">JPEG, PNG veya WebP, en fazla 5 MB.</div>
             </div>
 
-            <div class="col-md-6"><label class="form-label">Durum</label><select class="form-select" name="status"><option value="active" @selected(old('status', $team->status?->value) === 'active')>Aktif</option><option value="inactive" @selected(old('status', $team->status?->value) === 'inactive')>Pasif</option></select></div>
+            <div class="col-md-6">
+                <label class="form-label">Organizasyon</label>
+                <select class="form-select" name="organization_id">
+                    <option value="">Organizasyon yok</option>
+                    @foreach($organizations as $organization)
+                        <option value="{{ $organization->id }}" @selected((string) old('organization_id', $team->organization_id) === (string) $organization->id)>
+                            {{ $organization->name }}{{ $organization->status->value === 'inactive' ? ' (Pasif — mevcut seçim)' : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Durum</label>
+                <select class="form-select" name="status">
+                    <option value="active" @selected(old('status', $team->status?->value) === 'active')>Aktif</option>
+                    <option value="inactive" @selected(old('status', $team->status?->value) === 'inactive')>Pasif</option>
+                </select>
+            </div>
         </div>
 
         @if($errors->any())<div class="alert alert-danger mt-3">{{ $errors->first() }}</div>@endif

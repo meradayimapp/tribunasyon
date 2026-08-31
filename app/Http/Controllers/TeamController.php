@@ -15,7 +15,7 @@ class TeamController extends Controller
     public function show(Team $team): View
     {
         abort_unless($team->status->value === 'active', 404);
-        $team->loadCount('followers');
+        $team->load('organization')->loadCount('followers');
 
         return view('teams.show', compact('team'));
     }

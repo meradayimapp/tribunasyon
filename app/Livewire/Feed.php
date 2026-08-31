@@ -18,7 +18,7 @@ class Feed extends Component
 
     public function render(): View
     {
-        $query = Post::query()->published()->with(['team', 'media'])->withCount(['likes', 'comments']);
+        $query = Post::query()->published()->with(['team.organization', 'media'])->withCount(['likes', 'comments']);
 
         if ($this->team) {
             $query->whereBelongsTo($this->team);

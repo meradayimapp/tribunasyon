@@ -52,6 +52,39 @@ document.addEventListener('click', (event) => {
 document.addEventListener('DOMContentLoaded', updateThemeControls);
 document.addEventListener('livewire:navigated', updateThemeControls);
 
+window.imageUploadPreview = (initialUrl = null) => ({
+    preview: initialUrl,
+    objectUrl: null,
+    removed: false,
+
+    choose(event) {
+        const [file] = event.target.files ?? [];
+
+        if (!file) {
+            return;
+        }
+
+        if (this.objectUrl) {
+            URL.revokeObjectURL(this.objectUrl);
+        }
+
+        this.objectUrl = URL.createObjectURL(file);
+        this.preview = this.objectUrl;
+        this.removed = false;
+    },
+
+    clear() {
+        if (this.objectUrl) {
+            URL.revokeObjectURL(this.objectUrl);
+            this.objectUrl = null;
+        }
+
+        this.$refs.file.value = '';
+        this.preview = null;
+        this.removed = true;
+    },
+});
+
 window.postMediaManager = (existingMedia = [], maximum = 10) => ({
     items: existingMedia.map((media) => ({ key: `existing-${media.id}`, kind: 'existing', id: media.id, url: media.url })),
     maximum,
