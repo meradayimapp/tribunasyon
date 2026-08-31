@@ -22,14 +22,23 @@ class Feed extends Component
 
         if ($this->team) {
             $query->whereBelongsTo($this->team);
-        } elseif (auth()->check() && auth()->user()->followedTeams()->exists()) {
-            $query->whereIn('team_id', auth()->user()->followedTeams()->select('teams.id'));
+        } else {
+            $query->whereHas('team', fn ($teams) => $teams->active());
+
+            if (auth()->check() && auth()->user()->followedTeams()->exists()) {
+                $query->whereIn('team_id', auth()->user()->followedTeams()->select('teams.id'));
+            }
         }
 
         if (auth()->check()) {
             $query->withExists(['likes as liked_by_viewer' => fn ($likes) => $likes->where('user_id', auth()->id())]);
         }
 
-        return view('livewire.feed', ['posts' => $query->latest('published_at')->paginate(8)]);
+        return view('livewire.feed', [
+            'posts' => $query
+                ->orderByDesc('published_at')
+                ->orderByDesc('id')
+                ->paginate(8),
+        ]);
     }
 }
