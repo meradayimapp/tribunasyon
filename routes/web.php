@@ -42,6 +42,8 @@ Route::middleware('auth')->group(function (): void {
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function (): void {
     Route::get('/', Admin\DashboardController::class)->name('dashboard');
+    Route::get('settings', [Admin\SiteSettingController::class, 'edit'])->name('settings.edit');
+    Route::put('settings', [Admin\SiteSettingController::class, 'update'])->name('settings.update');
     Route::resource('teams', Admin\TeamController::class);
     Route::post('teams/{team}/restore', [Admin\TeamController::class, 'restore'])->name('teams.restore');
     Route::resource('organizations', Admin\OrganizationController::class)->except('show');

@@ -24,7 +24,7 @@ class PostController extends Controller
 
     public function create(Request $request): View
     {
-        return view('moderator.posts.form', ['post' => new Post, 'teams' => $request->user()->moderatedTeams()->orderBy('name')->get()]);
+        return view('moderator.posts.form', ['post' => new Post, 'teams' => $request->user()->moderatedTeams()->ordered()->get()]);
     }
 
     public function store(Request $request, PostMediaService $media): RedirectResponse
@@ -42,7 +42,7 @@ class PostController extends Controller
     {
         $this->authorize('update', $post);
 
-        return view('moderator.posts.form', ['post' => $post->load('media'), 'teams' => $request->user()->moderatedTeams()->orderBy('name')->get()]);
+        return view('moderator.posts.form', ['post' => $post->load('media'), 'teams' => $request->user()->moderatedTeams()->ordered()->get()]);
     }
 
     public function update(Request $request, Post $post, PostMediaService $media): RedirectResponse

@@ -8,6 +8,7 @@ use App\Services\MediaStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -15,14 +16,14 @@ class ProfileController extends Controller
 {
     public function show(User $user): View
     {
-        $user->load(['favoriteTeam', 'followedTeams' => fn ($query) => $query->active()->orderBy('name')]);
+        $user->load(['favoriteTeam', 'followedTeams' => fn ($query) => $query->active()->ordered()]);
 
         return view('profile.show', compact('user'));
     }
 
     public function edit(Request $request): View
     {
-        return view('profile.edit', ['user' => $request->user(), 'teams' => Team::active()->orderBy('name')->get()]);
+        return view('profile.edit', ['user' => $request->user(), 'teams' => Team::active()->ordered()->get()]);
     }
 
     public function update(Request $request, MediaStorageService $media): RedirectResponse
@@ -33,7 +34,7 @@ class ProfileController extends Controller
             'username' => ['required', 'alpha_dash', 'min:3', 'max:40', 'unique:users,username,'.$user->id],
             'email' => ['required', 'email:rfc', 'max:255', 'unique:users,email,'.$user->id],
             'bio' => ['nullable', 'string', 'max:280'],
-            'favorite_team_id' => ['required', 'exists:teams,id'],
+            'favorite_team_id' => ['required', Rule::exists('teams', 'id')->where(fn ($query) => $query->where('status', 'active')->whereNull('deleted_at'))],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 

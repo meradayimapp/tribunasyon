@@ -25,13 +25,17 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
-        return view('admin.users.edit', ['user' => $user, 'teams' => Team::active()->orderBy('name')->get()]);
+        return view('admin.users.edit', ['user' => $user, 'teams' => Team::active()->ordered()->get()]);
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
         abort_if($request->user()->is($user) && $request->input('status') === UserStatus::Suspended->value, 422, 'Kendi hesabınızı askıya alamazsınız.');
-        $data = $request->validate(['role' => ['required', Rule::enum(UserRole::class)], 'status' => ['required', Rule::enum(UserStatus::class)], 'favorite_team_id' => ['nullable', 'exists:teams,id']]);
+        $data = $request->validate([
+            'role' => ['required', Rule::enum(UserRole::class)],
+            'status' => ['required', Rule::enum(UserStatus::class)],
+            'favorite_team_id' => ['nullable', Rule::exists('teams', 'id')->where(fn ($query) => $query->where('status', 'active')->whereNull('deleted_at'))],
+        ]);
         $user->update($data);
         if ($user->role !== UserRole::Moderator) {
             $user->moderatedTeams()->detach();

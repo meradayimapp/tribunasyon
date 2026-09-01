@@ -8,6 +8,7 @@
         <a class="{{ request()->routeIs('admin.moderators.*') ? 'active' : '' }}" href="{{ route('admin.moderators.index') }}">Moderatörler</a>
         <a class="{{ request()->routeIs('admin.posts.*') ? 'active' : '' }}" href="{{ route('admin.posts.index') }}">Gönderiler</a>
         <a class="{{ request()->routeIs('admin.comments.*') ? 'active' : '' }}" href="{{ route('admin.comments.index') }}">Yorumlar</a>
+        <a class="{{ request()->routeIs('admin.settings.*') ? 'active' : '' }}" href="{{ route('admin.settings.edit') }}">Site Ayarları</a>
     @else
         <a class="{{ request()->routeIs('moderator.dashboard') ? 'active' : '' }}" href="{{ route('moderator.dashboard') }}">Takımlarım</a>
         <a class="{{ request()->routeIs('moderator.posts.*') ? 'active' : '' }}" href="{{ route('moderator.posts.index') }}">Gönderiler</a>

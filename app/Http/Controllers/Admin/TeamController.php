@@ -19,7 +19,7 @@ class TeamController extends Controller
 {
     public function index(): View
     {
-        return view('admin.teams.index', ['teams' => Team::withTrashed()->withCount(['followers', 'posts', 'moderators'])->orderBy('name')->get()]);
+        return view('admin.teams.index', ['teams' => Team::withTrashed()->withCount(['followers', 'posts', 'moderators'])->ordered()->get()]);
     }
 
     public function create(): View
@@ -156,12 +156,14 @@ class TeamController extends Controller
             'primary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'secondary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'status' => ['required', Rule::enum(TeamStatus::class)],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
             'organization_id' => ['nullable', 'integer', Rule::in($allowedOrganizationIds->unique()->all())],
             'logo_file' => ['nullable', 'file', 'image', 'mimes:png,webp', 'extensions:png,webp', 'max:5120'],
             'remove_logo' => ['nullable', 'boolean'],
             'cover_file' => ['nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'extensions:jpeg,jpg,png,webp', 'max:5120'],
         ]);
         $data['organization_id'] = $data['organization_id'] ?? null;
+        $data['sort_order'] = $data['sort_order'] ?? 0;
 
         return $data;
     }

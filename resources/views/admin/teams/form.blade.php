@@ -14,8 +14,9 @@
             <div class="col-md-6"><label class="form-label">Takım adı</label><input class="form-control" name="name" value="{{ old('name', $team->name) }}" required></div>
             <div class="col-md-6"><label class="form-label">Slug</label><input class="form-control" name="slug" value="{{ old('slug', $team->slug) }}" placeholder="Otomatik oluşturulur"></div>
             <div class="col-md-4"><label class="form-label">Kısa ad</label><input class="form-control" name="short_name" value="{{ old('short_name', $team->short_name) }}" maxlength="12" required></div>
-            <div class="col-md-4"><label class="form-label">Ana renk</label><input type="color" class="form-control form-control-color w-100" name="primary_color" value="{{ old('primary_color', $team->primary_color ?: '#2357d8') }}"></div>
-            <div class="col-md-4"><label class="form-label">İkincil renk</label><input type="color" class="form-control form-control-color w-100" name="secondary_color" value="{{ old('secondary_color', $team->secondary_color ?: '#ffffff') }}"></div>
+            <div class="col-md-3"><label class="form-label">Ana renk</label><input type="color" class="form-control form-control-color w-100" name="primary_color" value="{{ old('primary_color', $team->primary_color ?: '#2357d8') }}"></div>
+            <div class="col-md-3"><label class="form-label">İkincil renk</label><input type="color" class="form-control form-control-color w-100" name="secondary_color" value="{{ old('secondary_color', $team->secondary_color ?: '#ffffff') }}"></div>
+            <div class="col-md-2"><label class="form-label">Sıra</label><input type="number" min="0" class="form-control" name="sort_order" value="{{ old('sort_order', $team->sort_order ?? 0) }}"><div class="form-text">Düşük sayı önce görünür.</div></div>
 
             <div class="col-md-6">
                 <x-admin.image-upload

@@ -9,7 +9,7 @@ class TeamController extends Controller
 {
     public function index(): View
     {
-        return view('teams.index', ['teams' => Team::active()->withCount(['followers', 'posts' => fn ($query) => $query->published()])->orderBy('name')->get()]);
+        return view('teams.index', ['teams' => Team::active()->ordered()->withCount(['followers', 'posts' => fn ($query) => $query->published()])->get()]);
     }
 
     public function show(Team $team): View

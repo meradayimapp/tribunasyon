@@ -10,6 +10,6 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        return view('moderator.dashboard', ['teams' => $request->user()->moderatedTeams()->withCount(['posts', 'followers'])->orderBy('name')->get()]);
+        return view('moderator.dashboard', ['teams' => $request->user()->moderatedTeams()->withCount(['posts', 'followers'])->ordered()->get()]);
     }
 }

@@ -17,7 +17,7 @@ class DashboardController extends Controller
     {
         return view('admin.dashboard', ['stats' => [
             'teams' => Team::count(),
-            'members' => User::where('role', UserRole::Member)->count(),
+            'users' => User::count(),
             'moderators' => User::where('role', UserRole::Moderator)->count(),
             'posts' => Post::where('status', PostStatus::Published)->count(),
             'comments' => Comment::count(),

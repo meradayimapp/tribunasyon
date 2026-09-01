@@ -1,6 +1,5 @@
 @extends('layouts.app')
 @section('title', 'Akış')
-@section('mobile-title', config('app.name'))
 @section('content')
 <div class="feed-layout">
     <section class="feed-column">

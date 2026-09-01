@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -19,7 +20,7 @@ class RegisteredUserController extends Controller
 {
     public function create(): View
     {
-        return view('auth.register', ['teams' => Team::active()->orderBy('name')->get()]);
+        return view('auth.register', ['teams' => Team::active()->ordered()->get()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -28,7 +29,7 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'username' => ['required', 'string', 'min:3', 'max:40', 'alpha_dash', 'unique:users,username'],
             'email' => ['required', 'email:rfc', 'max:255', 'unique:users,email'],
-            'favorite_team_id' => ['required', 'exists:teams,id'],
+            'favorite_team_id' => ['required', Rule::exists('teams', 'id')->where(fn ($query) => $query->where('status', 'active')->whereNull('deleted_at'))],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 

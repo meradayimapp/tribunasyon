@@ -8,6 +8,7 @@ use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ModeratorController extends Controller
@@ -21,13 +22,16 @@ class ModeratorController extends Controller
     {
         abort_unless($user->isModerator(), 404);
 
-        return view('admin.moderators.edit', ['user' => $user->load('moderatedTeams'), 'teams' => Team::active()->orderBy('name')->get()]);
+        return view('admin.moderators.edit', ['user' => $user->load('moderatedTeams'), 'teams' => Team::active()->ordered()->get()]);
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
         abort_unless($user->isModerator(), 404);
-        $data = $request->validate(['teams' => ['array'], 'teams.*' => ['integer', 'exists:teams,id']]);
+        $data = $request->validate([
+            'teams' => ['array'],
+            'teams.*' => ['integer', Rule::exists('teams', 'id')->where(fn ($query) => $query->where('status', 'active')->whereNull('deleted_at'))],
+        ]);
         $user->moderatedTeams()->sync($data['teams'] ?? []);
 
         return redirect()->route('admin.moderators.index')->with('success', 'Takım atamaları güncellendi.');

@@ -16,16 +16,21 @@ class Team extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'slug', 'short_name', 'logo', 'cover_image', 'organization_badge', 'organization_id', 'primary_color', 'secondary_color', 'status'];
+    protected $fillable = ['name', 'slug', 'short_name', 'logo', 'cover_image', 'organization_badge', 'organization_id', 'primary_color', 'secondary_color', 'status', 'sort_order'];
 
     protected function casts(): array
     {
-        return ['status' => TeamStatus::class];
+        return ['status' => TeamStatus::class, 'sort_order' => 'integer'];
     }
 
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', TeamStatus::Active);
+    }
+
+    public function scopeOrdered(Builder $query): Builder
+    {
+        return $query->orderBy('sort_order')->orderBy('name');
     }
 
     public function posts(): HasMany

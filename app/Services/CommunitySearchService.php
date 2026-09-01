@@ -20,7 +20,7 @@ class CommunitySearchService
                     ->orWhereRaw("short_name LIKE ? ESCAPE '!'", [$pattern])
                     ->orWhereRaw("slug LIKE ? ESCAPE '!'", [$pattern]);
             })
-            ->orderBy('name')
+            ->ordered()
             ->limit($limit)
             ->get();
     }
@@ -32,6 +32,7 @@ class CommunitySearchService
         return Post::query()
             ->select(['id', 'team_id', 'type', 'body', 'image_path', 'status', 'published_at'])
             ->published()
+            ->whereHas('team', fn ($teams) => $teams->active())
             ->whereRaw("body LIKE ? ESCAPE '!'", [$pattern])
             ->with(['team:id,name,slug,short_name,logo,primary_color', 'coverMedia'])
             ->latest('published_at')
