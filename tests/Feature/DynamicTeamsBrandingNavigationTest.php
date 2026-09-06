@@ -101,6 +101,35 @@ class DynamicTeamsBrandingNavigationTest extends TestCase
         $this->assertDatabaseCount('site_settings', 0);
     }
 
+    public function test_replacing_and_removing_logos_refreshes_mobile_fallback(): void
+    {
+        $this->actingAs($this->user(UserRole::Admin));
+        $upload = fn (string $field) => $this->put(route('admin.settings.update'), [
+            'site_name' => 'Tribünasyon',
+            $field => UploadedFile::fake()->image('same-name.png', 320, 80),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $upload('site_logo');
+        $originalPath = SiteSetting::current()->logo_path;
+        $upload('site_logo');
+        $settings = SiteSetting::current();
+        $this->assertNotSame($originalPath, $settings->logo_path);
+        Storage::disk('public')->assertMissing($originalPath);
+        $siteUrl = $settings->themeLogoUrl('dark');
+        $this->assertSame($siteUrl, $settings->themeLogoUrl('dark', true));
+
+        $upload('small_logo');
+        $settings = SiteSetting::current();
+        $smallPath = $settings->small_logo_path;
+        $this->assertSame($settings->mediaUrl('small_logo_path'), $settings->themeLogoUrl('dark', true));
+        $this->assertSame($siteUrl, $settings->themeLogoUrl('dark'));
+
+        $this->put(route('admin.settings.update'), ['site_name' => 'Tribünasyon', 'remove_small_logo' => '1'])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        Storage::disk('public')->assertMissing($smallPath);
+        $this->assertSame($siteUrl, SiteSetting::current()->themeLogoUrl('dark', true));
+    }
+
     public function test_brand_fallback_is_rendered_when_no_logo_exists(): void
     {
         $this->get(route('home'))

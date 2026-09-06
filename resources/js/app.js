@@ -1,6 +1,8 @@
 import './bootstrap';
 import 'bootstrap';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+import appShell from './app-shell';
+
+window.appShell = appShell;
 
 const themeStorageKey = 'tribun-theme';
 
@@ -11,14 +13,9 @@ const updateThemeControls = () => {
 
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
         const label = isDark ? 'Açık temaya geç' : 'Koyu temaya geç';
-        const icon = button.querySelector('[data-theme-icon]');
 
         button.setAttribute('aria-label', label);
         button.setAttribute('title', label);
-
-        if (icon) {
-            icon.className = `bi ${isDark ? 'bi-sun' : 'bi-moon'}`;
-        }
     });
 };
 

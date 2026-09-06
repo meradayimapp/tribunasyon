@@ -17,7 +17,7 @@
 
     @if($mediaItems->count() > 1)
         <div class="post-media-counter" aria-live="polite"><span x-text="active + 1">1</span><span>/{{ $mediaItems->count() }}</span></div>
-        <button class="post-media-control previous" type="button" @click="goTo(active - 1)" x-show="active > 0" x-cloak aria-label="Önceki görsel"><i class="bi bi-chevron-left"></i></button>
-        <button class="post-media-control next" type="button" @click="goTo(active + 1)" x-show="active < total - 1" aria-label="Sonraki görsel"><i class="bi bi-chevron-right"></i></button>
+        <button class="post-media-control previous" type="button" @click="goTo(active - 1)" x-show="active > 0" x-cloak aria-label="Önceki görsel"><x-ui.icon name="chevron-left" /></button>
+        <button class="post-media-control next" type="button" @click="goTo(active + 1)" x-show="active < total - 1" aria-label="Sonraki görsel"><x-ui.icon name="chevron-right" /></button>
     @endif
 </div>

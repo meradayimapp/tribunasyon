@@ -7,7 +7,7 @@
     <form wire:submit="submit" class="comment-composer">
         @if($parentId)
             <div class="reply-banner">
-                <span><i class="bi bi-reply"></i> Bir yoruma yanıt veriyorsun</span>
+                <span><x-ui.icon name="reply" /> Bir yoruma yanıt veriyorsun</span>
                 <button type="button" class="btn-close" wire:click="cancelReply" aria-label="Yanıtı iptal et"></button>
             </div>
         @endif
@@ -34,10 +34,10 @@
                         <div class="comment-actions">
                             <time datetime="{{ $comment->created_at->toIso8601String() }}">{{ $comment->created_at->diffForHumans() }}</time>
                             <button class="comment-action {{ ($comment->liked_by_viewer ?? false) ? 'liked' : '' }}" type="button" wire:click="toggleLike({{ $comment->id }})" wire:loading.attr="disabled" aria-label="Yorumu beğen">
-                                Beğen
+                                <x-ui.icon :name="($comment->liked_by_viewer ?? false) ? 'heart-filled' : 'heart'" /> Beğen
                                 @if($comment->likes_count)<span>{{ $comment->likes_count }}</span>@endif
                             </button>
-                            <button class="comment-action" type="button" wire:click="replyTo({{ $comment->id }})">Yanıtla</button>
+                            <button class="comment-action" type="button" wire:click="replyTo({{ $comment->id }})"><x-ui.icon name="reply" /> Yanıtla</button>
                         </div>
 
                         @if($comment->replies_count > 0)
@@ -61,10 +61,10 @@
                                     <div class="comment-actions">
                                         <time datetime="{{ $reply->created_at->toIso8601String() }}">{{ $reply->created_at->diffForHumans() }}</time>
                                         <button class="comment-action {{ ($reply->liked_by_viewer ?? false) ? 'liked' : '' }}" type="button" wire:click="toggleLike({{ $reply->id }})" wire:loading.attr="disabled">
-                                            Beğen
+                                            <x-ui.icon :name="($reply->liked_by_viewer ?? false) ? 'heart-filled' : 'heart'" /> Beğen
                                             @if($reply->likes_count)<span>{{ $reply->likes_count }}</span>@endif
                                         </button>
-                                        <button class="comment-action" type="button" wire:click="replyTo({{ $comment->id }})">Yanıtla</button>
+                                        <button class="comment-action" type="button" wire:click="replyTo({{ $comment->id }})"><x-ui.icon name="reply" /> Yanıtla</button>
                                     </div>
                                 </div>
                             </article>
@@ -73,7 +73,7 @@
                 @endif
             </article>
         @empty
-            <div class="comments-empty"><i class="bi bi-chat"></i><strong>İlk yorumu sen yaz.</strong><span>Sohbeti başlat ve takımına ses ver.</span></div>
+            <div class="comments-empty"><x-ui.icon name="comment" /><strong>İlk yorumu sen yaz.</strong><span>Sohbeti başlat ve takımına ses ver.</span></div>
         @endforelse
     </div>
 </section>

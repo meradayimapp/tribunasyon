@@ -48,20 +48,39 @@ class FeedPaginationTest extends TestCase
             ]);
         }
 
-        $this->get(route('home'))
+        $firstPage = $this->get(route('home'))
             ->assertOk()
             ->assertSee('Sayfalama gönderisi 9')
             ->assertDontSee('Sayfalama gönderisi 1')
             ->assertSee('Sonraki ›')
             ->assertDontSee('Showing')
-            ->assertDontSee('<svg', false);
+            ->assertSee('class="ui-icon"', false);
 
-        $this->get(route('home', ['page' => 2]))
+        $this->assertBootstrapPaginationWithoutSvg($firstPage->getContent());
+
+        $secondPage = $this->get(route('home', ['page' => 2]))
             ->assertOk()
             ->assertSee('Sayfalama gönderisi 1')
             ->assertDontSee('Sayfalama gönderisi 9')
             ->assertSee('‹ Önceki')
             ->assertDontSee('Showing')
-            ->assertDontSee('<svg', false);
+            ->assertSee('class="ui-icon"', false);
+
+        $this->assertBootstrapPaginationWithoutSvg($secondPage->getContent());
+    }
+
+    private function assertBootstrapPaginationWithoutSvg(string $html): void
+    {
+        // The navigation now intentionally uses SVG. Keep this regression
+        // focused on Bootstrap pagination, which must not use Tailwind SVGs.
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($html);
+        $xpath = new \DOMXPath($dom);
+        $pagination = '//div[contains(concat(" ", normalize-space(@class), " "), " feed-pagination ")]';
+
+        $this->assertSame(1, $xpath->query($pagination)->length);
+        $this->assertGreaterThan(0, $xpath->query($pagination.'//ul[contains(@class, "pagination")]')->length);
+        $this->assertSame(0, $xpath->query($pagination.'//svg')->length);
+        $this->assertGreaterThan(0, $xpath->query('//svg[contains(@class, "ui-icon")]')->length);
     }
 }

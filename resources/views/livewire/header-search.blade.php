@@ -1,6 +1,6 @@
 <div class="header-search-wrap">
     <form class="header-search" wire:submit="submit" role="search">
-        <i class="bi bi-search" aria-hidden="true"></i>
+        <x-ui.icon name="search" />
         <input
             type="search"
             wire:model.live.debounce.300ms="query"
@@ -22,7 +22,7 @@
                     <a class="search-team-result" href="{{ route('teams.show', $team) }}">
                         <x-team-logo :team="$team" size="xs" />
                         <strong>{{ $team->name }}</strong>
-                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                        <x-ui.icon name="chevron-right" />
                     </a>
                 @endforeach
             @endif
@@ -41,7 +41,7 @@
                 <div class="search-empty">Sonuç bulunamadı</div>
             @endif
 
-            <a class="search-all" href="{{ route('search.index', ['q' => trim($query)]) }}">Tüm sonuçları gör <i class="bi bi-arrow-right"></i></a>
+            <a class="search-all" href="{{ route('search.index', ['q' => trim($query)]) }}">Tüm sonuçları gör <x-ui.icon name="arrow-right" /></a>
         </div>
     @endif
 </div>

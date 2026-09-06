@@ -47,8 +47,12 @@ class SiteSetting extends Model
         return Storage::disk('public')->url($path);
     }
 
-    public function themeLogoUrl(string $theme): ?string
+    public function themeLogoUrl(string $theme, bool $compact = false): ?string
     {
+        if ($compact && ($smallLogo = $this->mediaUrl('small_logo_path'))) {
+            return $smallLogo;
+        }
+
         $themeColumn = $theme === 'light' ? 'light_logo_path' : 'dark_logo_path';
         $alternateColumn = $theme === 'light' ? 'dark_logo_path' : 'light_logo_path';
 

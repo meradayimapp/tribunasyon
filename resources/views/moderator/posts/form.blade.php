@@ -35,9 +35,9 @@
                             <img :src="item.url" alt="Seçilen gönderi görseli önizlemesi">
                             <span class="media-editor-order" x-text="index + 1"></span>
                             <div class="media-editor-controls">
-                                <button type="button" @click="move(index, index - 1)" :disabled="index === 0" aria-label="Görseli sola taşı"><i class="bi bi-chevron-left"></i></button>
-                                <button type="button" @click="move(index, index + 1)" :disabled="index === items.length - 1" aria-label="Görseli sağa taşı"><i class="bi bi-chevron-right"></i></button>
-                                <button type="button" class="remove" @click="remove(index)" aria-label="Görseli kaldır"><i class="bi bi-x-lg"></i></button>
+                                <button type="button" @click="move(index, index - 1)" :disabled="index === 0" aria-label="Görseli sola taşı"><x-ui.icon name="chevron-left" /></button>
+                                <button type="button" @click="move(index, index + 1)" :disabled="index === items.length - 1" aria-label="Görseli sağa taşı"><x-ui.icon name="chevron-right" /></button>
+                                <button type="button" class="remove" @click="remove(index)" aria-label="Görseli kaldır"><x-ui.icon name="close" /></button>
                             </div>
                             <input type="hidden" name="media_order[]" :value="token(item)">
                         </div>
