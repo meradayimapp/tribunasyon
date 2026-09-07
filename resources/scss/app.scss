@@ -180,6 +180,10 @@ html:root { --livewire-progress-bar-color: var(--brand-cyan); }
 .aside-heading, .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .aside-heading span, .section-heading h2 { margin: 0; font-size: .88rem; font-weight: 600; }
 .aside-heading a { color: var(--accent); font-size: .75rem; font-weight: 500; }
+.community-team-list { max-height: 520px; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--line) transparent; scrollbar-width: thin; }
+.community-team-list::-webkit-scrollbar { width: 5px; }
+.community-team-list::-webkit-scrollbar-thumb { border-radius: 5px; background: var(--line); }
+.community-team-list::-webkit-scrollbar-track { background: transparent; }
 .team-row { display: flex; align-items: center; gap: .72rem; min-width: 0; padding: .72rem 0; }
 .team-row + .team-row { border-top: 1px solid var(--line); }
 .team-row strong { font-size: .86rem; font-weight: 600; }

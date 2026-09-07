@@ -10,7 +10,7 @@ class FeedController extends Controller
     public function __invoke(): View
     {
         return view('feed', [
-            'suggestedTeams' => Team::active()->ordered()->withCount('followers')->limit(4)->get(),
+            'suggestedTeams' => Team::active()->ordered()->withCount('followers')->get(),
         ]);
     }
 }

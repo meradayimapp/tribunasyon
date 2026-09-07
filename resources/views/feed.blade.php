@@ -9,9 +9,11 @@
     <aside class="feed-aside">
         <div class="aside-card">
             <div class="aside-heading"><span>Topluluklar</span><a href="{{ route('teams.index') }}">Tümünü gör</a></div>
-            @foreach($suggestedTeams as $team)
-                <a class="team-row" href="{{ route('teams.show', $team) }}"><x-team-logo :team="$team" size="xs" /><span class="flex-grow-1"><strong>{{ $team->name }}</strong><small class="d-block muted">{{ number_format($team->followers_count, 0, ',', '.') }} takipçi</small></span><x-ui.icon name="chevron-right" class="muted" /></a>
-            @endforeach
+            <div class="community-team-list">
+                @foreach($suggestedTeams as $team)
+                    <a class="team-row" href="{{ route('teams.show', $team) }}"><x-team-logo :team="$team" size="xs" /><span class="flex-grow-1"><strong>{{ $team->name }}</strong><small class="d-block muted">{{ number_format($team->followers_count, 0, ',', '.') }} takipçi</small></span><x-ui.icon name="chevron-right" class="muted" /></a>
+                @endforeach
+            </div>
         </div>
     </aside>
 </div>

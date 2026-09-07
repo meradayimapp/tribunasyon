@@ -32,6 +32,34 @@ class DynamicTeamsBrandingNavigationTest extends TestCase
             ->assertViewHas('suggestedTeams', fn ($teams) => $teams->contains($team));
     }
 
+    public function test_home_communities_include_all_active_teams_without_truncation(): void
+    {
+        $activeTeams = collect(range(1, 6))->map(fn (int $number) => $this->team([
+            'name' => "Aktif Takım {$number}",
+            'slug' => "aktif-takim-{$number}",
+        ]));
+        $inactiveTeam = $this->team([
+            'name' => 'Pasif Takım',
+            'slug' => 'pasif-takim',
+            'status' => TeamStatus::Inactive,
+        ]);
+        $deletedTeam = $this->team([
+            'name' => 'Silinmiş Takım',
+            'slug' => 'silinmis-takim',
+        ]);
+        $deletedTeam->delete();
+
+        $response = $this->get(route('home'))
+            ->assertOk()
+            ->assertViewHas('suggestedTeams', fn ($teams) => $teams->count() === 6
+                && $activeTeams->every(fn (Team $team) => $teams->contains($team))
+                && ! $teams->contains($inactiveTeam)
+                && ! $teams->contains('id', $deletedTeam->id));
+
+        $activeTeams->each(fn (Team $team) => $response->assertSee($team->name));
+        $response->assertDontSee($inactiveTeam->name)->assertDontSee($deletedTeam->name);
+    }
+
     public function test_inactive_team_is_not_in_home_communities(): void
     {
         $team = $this->team(['status' => TeamStatus::Inactive]);
