@@ -38,6 +38,11 @@ class Team extends Model
         return $this->hasMany(Post::class);
     }
 
+    public function players(): HasMany
+    {
+        return $this->hasMany(Player::class, 'current_team_id');
+    }
+
     public function followers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'team_follows')->withTimestamps();

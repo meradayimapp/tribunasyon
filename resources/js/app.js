@@ -182,3 +182,45 @@ window.postMediaCarousel = (total) => ({
         this.$refs.track.scrollTo({ left: this.$refs.track.clientWidth * index, behavior: 'smooth' });
     },
 });
+
+window.playerChatScroll = () => ({
+    stickToBottom: true,
+    previousHeight: 0,
+    previousTop: 0,
+
+    init() {
+        this.$nextTick(() => this.scrollToBottom());
+    },
+
+    onScroll() {
+        const log = this.$refs.log;
+        this.stickToBottom = !log || log.scrollHeight - log.scrollTop - log.clientHeight < 72;
+    },
+
+    beforePrepend() {
+        const log = this.$refs.log;
+        this.previousHeight = log?.scrollHeight ?? 0;
+        this.previousTop = log?.scrollTop ?? 0;
+    },
+
+    afterPrepend() {
+        this.$nextTick(() => {
+            const log = this.$refs.log;
+            if (log) log.scrollTop = this.previousTop + (log.scrollHeight - this.previousHeight);
+        });
+    },
+
+    afterUpdate() {
+        if (this.stickToBottom) this.$nextTick(() => this.scrollToBottom());
+    },
+
+    afterLatest() {
+        this.stickToBottom = true;
+        this.$nextTick(() => this.scrollToBottom());
+    },
+
+    scrollToBottom() {
+        const log = this.$refs.log;
+        if (log) log.scrollTop = log.scrollHeight;
+    },
+});

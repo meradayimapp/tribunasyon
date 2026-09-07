@@ -30,11 +30,12 @@ class HeaderSearch extends Component
     public function render(CommunitySearchService $search): View
     {
         $normalized = trim($this->query);
-        $searchable = mb_strlen($normalized) >= 2 && mb_strlen($normalized) <= 100;
+        $searchable = mb_strlen($normalized) >= 3 && mb_strlen($normalized) <= 100;
 
         return view('livewire.header-search', [
             'teams' => $searchable ? $search->teams($normalized, 4) : collect(),
             'posts' => $searchable ? $search->posts($normalized, 4) : collect(),
+            'players' => $searchable ? $search->players($normalized, 3) : collect(),
             'showSuggestions' => $searchable,
         ]);
     }

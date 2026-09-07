@@ -4,8 +4,8 @@
         <input
             type="search"
             wire:model.live.debounce.300ms="query"
-            placeholder="Takım veya gönderi ara..."
-            aria-label="Takım veya gönderi ara"
+            placeholder="Oyuncu, takım veya gönderi ara..."
+            aria-label="Oyuncu, takım veya gönderi ara"
             autocomplete="off"
             maxlength="100"
         >
@@ -16,6 +16,17 @@
 
     @if($showSuggestions)
         <div class="search-suggestions">
+            @if($players->isNotEmpty())
+                <div class="search-group-label">Oyuncular</div>
+                @foreach($players as $player)
+                    <a class="search-team-result" href="{{ route('players.show', $player) }}">
+                        <span class="search-player-avatar">@if($player->photoUrl())<img src="{{ $player->photoUrl() }}" alt="">@else{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}@endif</span>
+                        <span><strong>{{ $player->name }}</strong><small>{{ collect([$player->position, $player->currentTeam?->name])->filter()->join(' · ') }}</small></span>
+                        <x-ui.icon name="chevron-right" />
+                    </a>
+                @endforeach
+            @endif
+
             @if($teams->isNotEmpty())
                 <div class="search-group-label">Takımlar</div>
                 @foreach($teams as $team)
@@ -37,7 +48,7 @@
                 @endforeach
             @endif
 
-            @if($teams->isEmpty() && $posts->isEmpty())
+            @if($players->isEmpty() && $teams->isEmpty() && $posts->isEmpty())
                 <div class="search-empty">Sonuç bulunamadı</div>
             @endif
 

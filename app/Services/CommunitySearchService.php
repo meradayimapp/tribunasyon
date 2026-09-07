@@ -2,12 +2,28 @@
 
 namespace App\Services;
 
+use App\Models\Player;
 use App\Models\Post;
 use App\Models\Team;
 use Illuminate\Support\Collection;
 
 class CommunitySearchService
 {
+    public function players(string $query, int $limit = 8): Collection
+    {
+        if (mb_strlen(trim($query)) < 2) {
+            return collect();
+        }
+
+        return Player::query()
+            ->active()
+            ->matching($query)
+            ->with('currentTeam:id,name,slug,short_name,logo,primary_color')
+            ->ordered()
+            ->limit($limit)
+            ->get();
+    }
+
     public function teams(string $query, int $limit = 8): Collection
     {
         $pattern = $this->pattern($query);

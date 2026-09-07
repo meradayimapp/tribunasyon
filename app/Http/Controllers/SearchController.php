@@ -16,6 +16,7 @@ class SearchController extends Controller
             'query' => $query,
             'teams' => $query === '' ? collect() : $search->teams($query, 20),
             'posts' => $query === '' ? collect() : $search->posts($query, 30),
+            'players' => mb_strlen($query) < 2 ? collect() : $search->players($query, 20),
         ]);
     }
 }

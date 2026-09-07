@@ -6,6 +6,7 @@ use App\Enums\PostStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
+use App\Models\Player;
 use App\Models\Post;
 use App\Models\Team;
 use App\Models\User;
@@ -17,6 +18,7 @@ class DashboardController extends Controller
     {
         return view('admin.dashboard', ['stats' => [
             'teams' => Team::count(),
+            'players' => Player::count(),
             'users' => User::count(),
             'moderators' => User::where('role', UserRole::Moderator)->count(),
             'posts' => Post::where('status', PostStatus::Published)->count(),

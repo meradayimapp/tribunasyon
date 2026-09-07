@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\TeamOnboardingController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\Moderator;
+use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
@@ -21,6 +22,8 @@ Route::get('/takimlar', [TeamController::class, 'index'])->name('teams.index');
 Route::get('/takim/{team}', [TeamController::class, 'show'])->name('teams.show');
 Route::get('/takim/{team}/gonderi/{post}', [PostController::class, 'show'])->scopeBindings()->name('posts.show');
 Route::get('/maclar', MatchController::class)->name('matches.index');
+Route::get('/oyuncular', [PlayerController::class, 'index'])->name('players.index');
+Route::get('/oyuncu/{player}', [PlayerController::class, 'show'])->name('players.show');
 Route::get('/ara', SearchController::class)->name('search.index');
 Route::get('/profil/{user}', [ProfileController::class, 'show'])->name('profile.show');
 
@@ -53,6 +56,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::put('settings', [Admin\SiteSettingController::class, 'update'])->name('settings.update');
     Route::resource('teams', Admin\TeamController::class);
     Route::post('teams/{team}/restore', [Admin\TeamController::class, 'restore'])->name('teams.restore');
+    Route::resource('players', Admin\PlayerController::class)->except('show');
+    Route::post('players/{player}/restore', [Admin\PlayerController::class, 'restore'])->name('players.restore');
     Route::resource('organizations', Admin\OrganizationController::class)->except('show');
     Route::resource('users', Admin\UserController::class)->only(['index', 'edit', 'update']);
     Route::resource('moderators', Admin\ModeratorController::class)->only(['index', 'edit', 'update'])->parameters(['moderators' => 'user']);

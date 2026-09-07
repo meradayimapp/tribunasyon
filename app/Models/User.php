@@ -42,6 +42,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Team::class, 'team_follows')->withTimestamps();
     }
 
+    public function followedPlayers(): BelongsToMany
+    {
+        return $this->belongsToMany(Player::class, 'player_follows')->withTimestamps();
+    }
+
     public function moderatedTeams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class, 'team_moderator')->withTimestamps();
@@ -55,6 +60,11 @@ class User extends Authenticatable
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
+    }
+
+    public function playerChatMessages(): HasMany
+    {
+        return $this->hasMany(PlayerChatMessage::class);
     }
 
     public function likes(): HasMany

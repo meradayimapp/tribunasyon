@@ -6,17 +6,32 @@
 <div class="search-page mx-auto">
     <div class="page-head mobile-pad">
         <div class="eyebrow">Topluluk araması</div>
-        <h1 class="page-title">Takım ve gönderileri keşfet</h1>
+        <h1 class="page-title">Oyuncu, takım ve gönderileri keşfet</h1>
     </div>
 
     <form class="search-page-form" method="GET" action="{{ route('search.index') }}" role="search">
         <x-ui.icon name="search" />
-        <input type="search" name="q" value="{{ $query }}" placeholder="Takım veya gönderi ara..." aria-label="Takım veya gönderi ara" maxlength="100" autofocus>
+        <input type="search" name="q" value="{{ $query }}" placeholder="Oyuncu, takım veya gönderi ara..." aria-label="Oyuncu, takım veya gönderi ara" maxlength="100" autofocus>
         <button type="submit">Ara</button>
     </form>
     @error('q')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
 
     @if($query !== '')
+        <section class="search-section">
+            <div class="section-heading"><h2>Oyuncular</h2><span>{{ $players->count() }}</span></div>
+            <div class="search-team-list">
+                @forelse($players as $player)
+                    <a class="search-team-card" href="{{ route('players.show', $player) }}">
+                        <span class="search-player-avatar">@if($player->photoUrl())<img src="{{ $player->photoUrl() }}" alt="{{ $player->name }} fotoğrafı">@else{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}@endif</span>
+                        <span class="search-team-card-copy"><strong>{{ $player->name }}</strong><small>{{ collect([$player->position, $player->currentTeam?->name])->filter()->join(' · ') }}</small></span>
+                        <x-ui.icon name="chevron-right" />
+                    </a>
+                @empty
+                    <div class="search-section-empty">Eşleşen oyuncu bulunamadı.</div>
+                @endforelse
+            </div>
+        </section>
+
         <section class="search-section">
             <div class="section-heading"><h2>Takımlar</h2><span>{{ $teams->count() }}</span></div>
             <div class="search-team-list">
@@ -49,7 +64,7 @@
             </div>
         </section>
 
-        @if($teams->isEmpty() && $posts->isEmpty())
+        @if($players->isEmpty() && $teams->isEmpty() && $posts->isEmpty())
             <div class="empty-state search-no-results"><x-ui.icon name="search" /><strong>Sonuç bulunamadı</strong><p>Başka bir takım adı veya ifade deneyin.</p></div>
         @endif
     @else

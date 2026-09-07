@@ -32,6 +32,7 @@
         <nav class="side-links">
             <a class="side-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><x-ui.icon name="home" /><span>Akış</span></a>
             <a class="side-link {{ request()->routeIs('teams.*') ? 'active' : '' }}" href="{{ route('teams.index') }}"><x-ui.icon name="teams" /><span>Takımlar</span></a>
+            <a class="side-link {{ request()->routeIs('players.*') ? 'active' : '' }}" href="{{ route('players.index') }}"><x-ui.icon name="person" /><span>Oyuncular</span></a>
             <a class="side-link {{ request()->routeIs('matches.*') ? 'active' : '' }}" href="{{ route('matches.index') }}"><x-ui.icon name="football" /><span>Maçlar</span></a>
             @auth
                 <a class="side-link {{ request()->routeIs('profile.*') ? 'active' : '' }}" href="{{ route('profile.show', auth()->user()) }}"><x-ui.icon name="person" /><span>Profil</span></a>
@@ -109,12 +110,14 @@
             </div>
 
             <nav class="mobile-menu-links" aria-label="Hesap menüsü">
+                <a class="{{ request()->routeIs('players.*') ? 'active' : '' }}" href="{{ route('players.index') }}" @click="mobileMenuOpen = false"><x-ui.icon name="person" /><span>Oyuncular</span></a>
                 <a class="{{ request()->routeIs('profile.*') ? 'active' : '' }}" href="{{ route('profile.show', auth()->user()) }}" @click="mobileMenuOpen = false"><x-ui.icon name="person" /><span>Profil</span></a>
 
                 @if(auth()->user()->isAdmin())
                     <div class="mobile-menu-label">Yönetim</div>
                     <a class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}" @click="mobileMenuOpen = false"><x-ui.icon name="dashboard" /><span>Admin Paneli</span></a>
                     <a class="{{ request()->routeIs('admin.teams.*') ? 'active' : '' }}" href="{{ route('admin.teams.index') }}" @click="mobileMenuOpen = false"><x-ui.icon name="teams" /><span>Takımlar</span></a>
+                    <a class="{{ request()->routeIs('admin.players.*') ? 'active' : '' }}" href="{{ route('admin.players.index') }}" @click="mobileMenuOpen = false"><x-ui.icon name="person" /><span>Oyuncular</span></a>
                     <a class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}" @click="mobileMenuOpen = false"><x-ui.icon name="people" /><span>Kullanıcılar</span></a>
                     <a class="{{ request()->routeIs('admin.moderators.*') ? 'active' : '' }}" href="{{ route('admin.moderators.index') }}" @click="mobileMenuOpen = false"><x-ui.icon name="check-circle" /><span>Moderatörler</span></a>
                     <a class="{{ request()->routeIs('admin.posts.*') ? 'active' : '' }}" href="{{ route('admin.posts.index') }}" @click="mobileMenuOpen = false"><x-ui.icon name="image" /><span>Gönderiler</span></a>
