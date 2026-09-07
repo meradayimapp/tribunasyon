@@ -20,6 +20,8 @@ class SiteSettingController extends Controller
         'favicon' => 'favicon_path',
         'light_logo' => 'light_logo_path',
         'dark_logo' => 'dark_logo_path',
+        'login_image' => 'login_image_path',
+        'register_image' => 'register_image_path',
     ];
 
     public function edit(): View
@@ -38,7 +40,8 @@ class SiteSettingController extends Controller
         try {
             foreach (self::UPLOADS as $input => $column) {
                 if ($request->hasFile($input)) {
-                    $data[$column] = $media->store($request->file($input), 'branding');
+                    $directory = in_array($column, ['login_image_path', 'register_image_path'], true) ? 'branding/auth' : 'branding';
+                    $data[$column] = $media->store($request->file($input), $directory);
                     $storedPaths[] = $data[$column];
                 } elseif ($request->boolean("remove_{$input}")) {
                     $data[$column] = null;
@@ -74,7 +77,10 @@ class SiteSettingController extends Controller
         $rules = ['site_name' => ['required', 'string', 'max:100']];
 
         foreach (self::UPLOADS as $input => $column) {
-            $rules[$input] = ['nullable', File::image()->types(['png', 'webp'])->max(5 * 1024)];
+            $types = in_array($column, ['login_image_path', 'register_image_path'], true)
+                ? ['jpg', 'jpeg', 'png', 'webp']
+                : ['png', 'webp'];
+            $rules[$input] = ['nullable', File::image()->types($types)->max(5 * 1024)];
             $rules["remove_{$input}"] = ['nullable', 'boolean'];
         }
 

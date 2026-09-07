@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\GoogleOAuthController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\TeamOnboardingController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\Moderator;
@@ -27,6 +29,8 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/kayit', [RegisteredUserController::class, 'store']);
     Route::get('/giris', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/giris', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:10,1');
+    Route::get('/auth/google', [GoogleOAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('/auth/google/callback', [GoogleOAuthController::class, 'callback'])->name('auth.google.callback');
     Route::get('/sifremi-unuttum', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/sifremi-unuttum', [PasswordResetLinkController::class, 'store'])->middleware('throttle:3,1')->name('password.email');
     Route::get('/sifre-sifirla/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
@@ -35,6 +39,9 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/cikis', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/takimlarini-sec', [TeamOnboardingController::class, 'edit'])->name('onboarding.teams.edit');
+    Route::put('/takimlarini-sec', [TeamOnboardingController::class, 'update'])->name('onboarding.teams.update');
+    Route::post('/takimlarini-sec/gec', [TeamOnboardingController::class, 'skip'])->name('onboarding.teams.skip');
     Route::get('/profil-duzenle', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profil-duzenle', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profil-sifre', [ProfileController::class, 'password'])->name('profile.password');

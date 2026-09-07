@@ -31,6 +31,6 @@ class AppServiceProvider extends ServiceProvider
         Relation::enforceMorphMap(['post' => Post::class, 'comment' => Comment::class]);
         Post::observe(PostObserver::class);
         Paginator::useBootstrapFive();
-        View::composer('layouts.app', fn ($view) => $view->with('siteSettings', SiteSetting::current()));
+        View::composer(['layouts.app', 'layouts.auth'], fn ($view) => $view->with('siteSettings', SiteSetting::current()));
     }
 }

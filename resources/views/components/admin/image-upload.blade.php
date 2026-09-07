@@ -5,6 +5,7 @@
     'required' => false,
     'removeName' => 'remove_logo',
     'help' => 'PNG veya WebP, en fazla 5 MB.',
+    'accept' => 'image/png,image/webp',
 ])
 @php($inputId = 'upload-'.str_replace(['[', ']'], '-', $name))
 
@@ -21,7 +22,7 @@
                 id="{{ $inputId }}"
                 name="{{ $name }}"
                 type="file"
-                accept="image/png,image/webp"
+                accept="{{ $accept }}"
                 x-ref="file"
                 @change="choose($event)"
                 @required($required)

@@ -1,14 +1,53 @@
-@extends('layouts.app')
+@extends('layouts.auth')
 @section('title', 'Kayıt ol')
 @section('content')
-<div class="auth-wrap"><div class="auth-card"><div class="eyebrow">Topluluğa katıl</div><h1 class="h3 fw-bold mb-1">Tribündeki yerini al</h1><p class="muted mb-4">Favori takımını seç, akışın hemen oluşsun.</p>
-<form method="POST" action="{{ route('register') }}">@csrf
-    <div class="mb-3"><label class="form-label">Ad</label><input name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror">@error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-    <div class="mb-3"><label class="form-label">Kullanıcı adı</label><div class="input-group"><span class="input-group-text">@</span><input name="username" value="{{ old('username') }}" class="form-control @error('username') is-invalid @enderror"></div>@error('username')<div class="text-danger small mt-1">{{ $message }}</div>@enderror</div>
-    <div class="mb-3"><label class="form-label">E-posta</label><input type="email" name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror">@error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-    <div class="mb-3"><label class="form-label">Favori takım</label><select name="favorite_team_id" class="form-select @error('favorite_team_id') is-invalid @enderror"><option value="">Takımını seç</option>@foreach($teams as $team)<option value="{{ $team->id }}" @selected(old('favorite_team_id')==$team->id)>{{ $team->name }}</option>@endforeach</select>@error('favorite_team_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-    <div class="mb-3"><label class="form-label">Şifre</label><input type="password" name="password" autocomplete="new-password" class="form-control @error('password') is-invalid @enderror">@error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-    <div class="mb-4"><label class="form-label">Şifre tekrar</label><input type="password" name="password_confirmation" autocomplete="new-password" class="form-control"></div>
-    <button class="btn btn-primary w-100">Hesabımı oluştur</button>
-</form><p class="text-center small muted mt-4 mb-0">Zaten üye misin? <a class="text-primary fw-bold" href="{{ route('login') }}">Giriş yap</a></p></div></div>
+<x-auth-panel :image-url="$authImageUrl" variant="register">
+    <div class="eyebrow">Hesabını oluştur</div>
+    <h1 class="auth-title">Aramıza katıl</h1>
+    <p class="auth-lead">Futbolun yeni sosyal ağında yerini al.</p>
+
+    <form method="POST" action="{{ route('register') }}">
+        @csrf
+        <div class="mb-3">
+            <label class="form-label" for="name">Ad Soyad</label>
+            <input id="name" name="name" value="{{ old('name') }}" maxlength="100" autocomplete="name" required class="form-control @error('name') is-invalid @enderror">
+            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="username">Kullanıcı adı</label>
+            <div class="input-group">
+                <span class="input-group-text">@</span>
+                <input id="username" name="username" value="{{ old('username') }}" minlength="3" maxlength="40" autocomplete="username" required class="form-control @error('username') is-invalid @enderror">
+                @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="email">E-posta</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" autocomplete="email" required class="form-control @error('email') is-invalid @enderror">
+            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+        <div class="row g-3 mb-4" x-data="{ passwordVisible: false, confirmationVisible: false }">
+            <div class="col-sm-6">
+                <label class="form-label" for="password">Şifre</label>
+                <div class="auth-password-field">
+                    <input id="password" :type="passwordVisible ? 'text' : 'password'" name="password" autocomplete="new-password" required class="form-control @error('password') is-invalid @enderror">
+                    <button type="button" @click="passwordVisible = ! passwordVisible" :aria-label="passwordVisible ? 'Şifreyi gizle' : 'Şifreyi göster'" x-text="passwordVisible ? 'Gizle' : 'Göster'"></button>
+                    @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label" for="password-confirmation">Şifre tekrar</label>
+                <div class="auth-password-field">
+                    <input id="password-confirmation" :type="confirmationVisible ? 'text' : 'password'" name="password_confirmation" autocomplete="new-password" required class="form-control">
+                    <button type="button" @click="confirmationVisible = ! confirmationVisible" :aria-label="confirmationVisible ? 'Şifreyi gizle' : 'Şifreyi göster'" x-text="confirmationVisible ? 'Gizle' : 'Göster'"></button>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary auth-primary-action w-100" type="submit">Kayıt ol</button>
+    </form>
+
+    <div class="auth-divider"><span>veya</span></div>
+    <a class="btn auth-google-button w-100" href="{{ route('auth.google.redirect') }}"><x-google-icon /> Google ile devam et</a>
+    <p class="auth-switch">Zaten hesabın var mı? <a href="{{ route('login') }}">Giriş yap</a></p>
+</x-auth-panel>
 @endsection
