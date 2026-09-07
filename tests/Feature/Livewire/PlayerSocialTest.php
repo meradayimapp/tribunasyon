@@ -96,7 +96,7 @@ class PlayerSocialTest extends TestCase
         for ($i = 1; $i <= 50; $i++) {
             $player->chatMessages()->create(['user_id' => $user->id, 'body' => "Eski {$i}"]);
         }
-        $component = Livewire::test(PlayerChat::class, ['player' => $player]);
+        $component = Livewire::actingAs($user)->test(PlayerChat::class, ['player' => $player]);
         $player->chatMessages()->create(['user_id' => $user->id, 'body' => 'Yeni mesaj']);
 
         DB::enableQueryLog();
@@ -106,6 +106,28 @@ class PlayerSocialTest extends TestCase
         $this->assertTrue($queries->contains(fn (string $sql): bool => str_contains($sql, 'player_chat_messages') && str_contains($sql, '"id" > ?')));
         $this->assertFalse($queries->contains(fn (string $sql): bool => str_contains($sql, 'player_follows') || str_contains($sql, 'from "teams"')));
         $this->assertCount(51, $component->get('messages'));
+        $this->assertSame('Yeni mesaj', $component->get('messages')[0]['body']);
+    }
+
+    public function test_messages_are_always_rendered_newest_first(): void
+    {
+        [$player, $user] = $this->records();
+        for ($i = 1; $i <= 60; $i++) {
+            $player->chatMessages()->create(['user_id' => $user->id, 'body' => "Mesaj {$i}"]);
+        }
+
+        $component = Livewire::actingAs($user)->test(PlayerChat::class, ['player' => $player]);
+        $this->assertSame('Mesaj 60', $component->get('messages')[0]['body']);
+        $this->assertSame('Mesaj 11', $component->get('messages')[49]['body']);
+
+        $component->call('loadOlder');
+        $messages = $component->get('messages');
+        $this->assertSame('Mesaj 60', $messages[0]['body']);
+        $this->assertSame('Mesaj 1', $messages[array_key_last($messages)]['body']);
+
+        $this->clearLimits($user);
+        $component->set('body', 'En yeni')->call('send');
+        $this->assertSame('En yeni', $component->get('messages')[0]['body']);
     }
 
     public function test_chat_window_never_exceeds_250_messages(): void
@@ -150,12 +172,45 @@ class PlayerSocialTest extends TestCase
         Livewire::actingAs($moderator)->test(PlayerChat::class, ['player' => $player])->call('deleteMessage', $message->id);
         $this->assertSoftDeleted($message);
 
+        $adminMessage = $player->chatMessages()->create(['user_id' => $admin->id, 'body' => 'Yönetici mesajı']);
+        $moderatorComponent = Livewire::actingAs($moderator)->test(PlayerChat::class, ['player' => $player]);
+        $adminMessageState = collect($moderatorComponent->get('messages'))->firstWhere('id', $adminMessage->id);
+        $this->assertFalse($adminMessageState['can_delete']);
+        $moderatorComponent
+            ->assertSee('Yönetici')
+            ->call('deleteMessage', $adminMessage->id)
+            ->assertForbidden();
+        $this->assertNotSoftDeleted($adminMessage);
+
+        $adminComponent = Livewire::actingAs($admin)->test(PlayerChat::class, ['player' => $player]);
+        $this->assertTrue(collect($adminComponent->get('messages'))->firstWhere('id', $adminMessage->id)['can_delete']);
+        $adminComponent->call('deleteMessage', $adminMessage->id);
+        $this->assertSoftDeleted($adminMessage);
+
+        $otherModerator = User::factory()->create(['role' => UserRole::Moderator]);
+        $moderatorMessage = $player->chatMessages()->create(['user_id' => $otherModerator->id, 'body' => 'Diğer moderatör']);
+        Livewire::actingAs($moderator)->test(PlayerChat::class, ['player' => $player])
+            ->call('deleteMessage', $moderatorMessage->id)
+            ->assertForbidden();
+        $this->assertNotSoftDeleted($moderatorMessage);
+
         $message = $player->chatMessages()->create(['user_id' => $owner->id, 'body' => 'Yanlış moderatör']);
         $otherTeam = Team::create(['name' => 'Diğer', 'slug' => 'diger', 'short_name' => 'DGR', 'primary_color' => '#222222', 'secondary_color' => '#ffffff', 'status' => TeamStatus::Active]);
         $wrongModerator = User::factory()->create(['role' => UserRole::Moderator]);
         $wrongModerator->moderatedTeams()->attach($otherTeam);
         Livewire::actingAs($wrongModerator)->test(PlayerChat::class, ['player' => $player])->call('deleteMessage', $message->id)->assertForbidden();
         $this->assertNotSoftDeleted($message);
+    }
+
+    public function test_moderator_messages_have_role_badge_and_brand_class(): void
+    {
+        $player = Player::factory()->create();
+        $moderator = User::factory()->create(['role' => UserRole::Moderator]);
+        $player->chatMessages()->create(['user_id' => $moderator->id, 'body' => 'Resmî moderatör mesajı']);
+
+        Livewire::test(PlayerChat::class, ['player' => $player])
+            ->assertSee('Moderatör')
+            ->assertSeeHtml('role-moderator');
     }
 
     public function test_player_soft_delete_preserves_chat_and_force_delete_cascades_it(): void

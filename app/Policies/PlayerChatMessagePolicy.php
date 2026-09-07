@@ -14,11 +14,16 @@ class PlayerChatMessagePolicy
 
     public function delete(User $user, PlayerChatMessage $message): bool
     {
+        if ($message->user->isAdmin()) {
+            return false;
+        }
+
         if ($user->id === $message->user_id) {
             return true;
         }
 
         return $user->isModerator()
+            && ! $message->user->isModerator()
             && $message->player->current_team_id !== null
             && $user->moderatedTeams()->whereKey($message->player->current_team_id)->exists();
     }

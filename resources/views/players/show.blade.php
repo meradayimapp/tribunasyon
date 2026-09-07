@@ -14,6 +14,11 @@
             <div class="player-profile-copy">
                 <div class="eyebrow">Oyuncu profili</div>
                 <h1>{{ $player->name }}</h1>
+                @if($engagementBadges)
+                    <div class="player-engagement-badges">
+                        @foreach($engagementBadges as $badge)<span><x-ui.icon name="trophy" />{{ $badge }}</span>@endforeach
+                    </div>
+                @endif
                 <div class="player-identity-line">
                     @if($player->position)<span>{{ $player->position }}</span>@endif
                     @if($player->currentTeam)<span><x-team-logo :team="$player->currentTeam" size="xs" />{{ $player->currentTeam->name }}</span>@else<span>Serbest oyuncu</span>@endif
@@ -26,7 +31,7 @@
 
     <div class="player-tabs" role="tablist" aria-label="Oyuncu profil bölümleri">
         <button type="button" role="tab" :aria-selected="(tab === 'general').toString()" :class="{ active: tab === 'general' }" @click="tab = 'general'">Genel</button>
-        <button type="button" role="tab" :aria-selected="(tab === 'chat').toString()" :class="{ active: tab === 'chat' }" @click="tab = 'chat'">Sohbet</button>
+        <button type="button" role="tab" :aria-selected="(tab === 'chat').toString()" :class="{ active: tab === 'chat' }" @click="tab = 'chat'">Canlı Sohbet</button>
     </div>
 
     <section x-show="tab === 'general'" class="player-general" role="tabpanel">

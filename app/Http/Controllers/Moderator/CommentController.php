@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Moderator;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use Illuminate\Http\RedirectResponse;
@@ -13,7 +14,11 @@ class CommentController extends Controller
     public function index(Request $request): View
     {
         $teamIds = $request->user()->moderatedTeams()->pluck('teams.id');
-        $comments = Comment::with(['user', 'post.team'])->whereHas('post', fn ($query) => $query->whereIn('team_id', $teamIds))->latest()->paginate(25);
+        $comments = Comment::with(['user', 'post.team'])
+            ->whereHas('user', fn ($query) => $query->where('role', UserRole::Member))
+            ->whereHas('post', fn ($query) => $query->whereIn('team_id', $teamIds))
+            ->latest()
+            ->paginate(25);
 
         return view('moderator.comments.index', compact('comments'));
     }

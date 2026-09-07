@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Enums\PlayerStatus;
+use App\Enums\UserRole;
 use App\Models\Player;
 use App\Models\PlayerChatMessage;
 use App\Services\PlayerChatQuery;
@@ -57,16 +58,15 @@ class PlayerChat extends Component
 
         $batch = $query->before($this->player, $this->oldestVisibleId);
         $older = $this->serializeMessages($batch['messages']);
-        $this->messages = $this->deduplicate([...$older, ...$this->messages]);
+        $this->messages = $this->deduplicate([...$this->messages, ...$older]);
         $this->hasOlder = $batch['has_older'];
 
         if (count($this->messages) > self::WINDOW_SIZE) {
-            $this->messages = array_slice($this->messages, 0, self::WINDOW_SIZE);
+            $this->messages = array_slice($this->messages, -self::WINDOW_SIZE);
             $this->viewingHistory = true;
         }
 
         $this->recalculateBounds();
-        $this->dispatch('player-chat-prepended');
     }
 
     public function poll(PlayerChatQuery $query): void
@@ -84,11 +84,11 @@ class PlayerChat extends Component
             return;
         }
 
-        $this->messages = $this->deduplicate([...$this->messages, ...$this->serializeMessages($new)]);
+        $this->messages = $this->deduplicate([...$this->serializeMessages($new), ...$this->messages]);
         $this->lastKnownMessageId = max($this->lastKnownMessageId, (int) $new->max('id'));
 
         if (count($this->messages) > self::WINDOW_SIZE) {
-            $this->messages = array_slice($this->messages, -self::WINDOW_SIZE);
+            $this->messages = array_slice($this->messages, 0, self::WINDOW_SIZE);
             $this->hasOlder = true;
         }
 
@@ -127,15 +127,15 @@ class PlayerChat extends Component
         RateLimiter::hit($burstKey, 3);
         RateLimiter::hit($minuteKey, 60);
         $message = $this->player->chatMessages()->create(['user_id' => $userId, 'body' => $this->body]);
-        $message->load('user:id,name,username,avatar_path');
+        $message->load('user:id,name,username,avatar_path,role');
         $this->reset('body');
 
         if ($this->viewingHistory) {
             $this->replaceWithLatest($query);
         } else {
-            $this->messages = $this->deduplicate([...$this->messages, ...$this->serializeMessages(new Collection([$message]))]);
+            $this->messages = $this->deduplicate([...$this->serializeMessages(new Collection([$message])), ...$this->messages]);
             if (count($this->messages) > self::WINDOW_SIZE) {
-                $this->messages = array_slice($this->messages, -self::WINDOW_SIZE);
+                $this->messages = array_slice($this->messages, 0, self::WINDOW_SIZE);
                 $this->hasOlder = true;
             }
             $this->lastKnownMessageId = max($this->lastKnownMessageId, $message->id);
@@ -143,6 +143,7 @@ class PlayerChat extends Component
         }
 
         $this->dispatch('player-chat-updated');
+        $this->dispatch('player-chat-sent');
 
         return null;
     }
@@ -177,12 +178,14 @@ class PlayerChat extends Component
         $viewerId = auth()->id();
 
         return $messages->map(function (PlayerChatMessage $message) use ($viewerId): array {
+            $role = $message->user->role;
+
             return [
                 'id' => $message->id,
                 'body' => $message->body,
                 'created_at' => $message->created_at->toIso8601String(),
                 'time' => $message->created_at->format('H:i'),
-                'can_delete' => $this->canModerate || $viewerId === $message->user_id,
+                'can_delete' => $this->canDeleteMessage($message, $viewerId),
                 'user' => [
                     'name' => $message->user->name,
                     'username' => $message->user->username,
@@ -190,6 +193,12 @@ class PlayerChat extends Component
                         ? Storage::disk('public')->url($message->user->avatar_path)
                         : null,
                     'initials' => mb_strtoupper(mb_substr($message->user->name, 0, 2)),
+                    'role' => $role->value,
+                    'role_label' => match ($role) {
+                        UserRole::Admin => 'Yönetici',
+                        UserRole::Moderator => 'Moderatör',
+                        UserRole::Member => null,
+                    },
                 ],
             ];
         })->all();
@@ -201,14 +210,36 @@ class PlayerChat extends Component
         foreach ($messages as $message) {
             $unique[$message['id']] = $message;
         }
-        ksort($unique, SORT_NUMERIC);
+        krsort($unique, SORT_NUMERIC);
 
         return array_values($unique);
     }
 
     private function recalculateBounds(): void
     {
-        $this->oldestVisibleId = $this->messages[0]['id'] ?? null;
-        $this->newestVisibleId = $this->messages[array_key_last($this->messages)]['id'] ?? null;
+        $this->newestVisibleId = $this->messages[0]['id'] ?? null;
+        $this->oldestVisibleId = $this->messages[array_key_last($this->messages)]['id'] ?? null;
+    }
+
+    private function canDeleteMessage(PlayerChatMessage $message, ?int $viewerId): bool
+    {
+        if ($viewerId === null) {
+            return false;
+        }
+
+        $viewer = auth()->user();
+        if ($viewer->isAdmin()) {
+            return true;
+        }
+
+        if ($message->user->isAdmin()) {
+            return false;
+        }
+
+        if ($viewerId === $message->user_id) {
+            return true;
+        }
+
+        return $this->canModerate && $message->user->role === UserRole::Member;
     }
 }

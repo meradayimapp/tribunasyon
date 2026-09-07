@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Enums\TeamStatus;
 use App\Livewire\HeaderSearch;
+use App\Livewire\PlayerDirectory;
 use App\Models\Player;
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -86,6 +89,36 @@ class PlayerPublicTest extends TestCase
         $player = Player::factory()->make(['market_value_amount' => 950_000, 'market_value_currency' => 'EUR']);
 
         $this->assertSame('€950K', $player->formatted_market_value);
+    }
+
+    public function test_players_can_be_ranked_by_weekly_and_monthly_engagement(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-16 12:00:00'));
+        $weekly = Player::factory()->create(['name' => 'Haftalık Lider', 'slug' => 'haftalik-lider']);
+        $monthly = Player::factory()->create(['name' => 'Aylık Lider', 'slug' => 'aylik-lider']);
+        $user = User::factory()->create();
+
+        $this->messages($weekly, $user->id, 2, now()->subDay());
+        $this->messages($monthly, $user->id, 3, now()->subDays(5));
+
+        $component = Livewire::test(PlayerDirectory::class);
+        $this->assertLessThan(strpos($component->html(), 'Aylık Lider'), strpos($component->html(), 'Haftalık Lider'));
+
+        $component->set('sort', 'monthly');
+        $this->assertLessThan(strpos($component->html(), 'Haftalık Lider'), strpos($component->html(), 'Aylık Lider'));
+
+        $this->get(route('players.show', $weekly))
+            ->assertOk()
+            ->assertSee('Haftanın en çok konuşulanı');
+        $this->travelBack();
+    }
+
+    private function messages(Player $player, int $userId, int $count, \DateTimeInterface $createdAt): void
+    {
+        for ($i = 0; $i < $count; $i++) {
+            $message = $player->chatMessages()->create(['user_id' => $userId, 'body' => "Etkileşim {$i}"]);
+            $message->forceFill(['created_at' => $createdAt, 'updated_at' => $createdAt])->saveQuietly();
+        }
     }
 
     private function team(array $attributes = []): Team

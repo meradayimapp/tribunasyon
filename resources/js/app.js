@@ -184,43 +184,28 @@ window.postMediaCarousel = (total) => ({
 });
 
 window.playerChatScroll = () => ({
-    stickToBottom: true,
-    previousHeight: 0,
-    previousTop: 0,
+    stickToTop: true,
 
     init() {
-        this.$nextTick(() => this.scrollToBottom());
+        this.$nextTick(() => this.scrollToTop());
     },
 
     onScroll() {
         const log = this.$refs.log;
-        this.stickToBottom = !log || log.scrollHeight - log.scrollTop - log.clientHeight < 72;
-    },
-
-    beforePrepend() {
-        const log = this.$refs.log;
-        this.previousHeight = log?.scrollHeight ?? 0;
-        this.previousTop = log?.scrollTop ?? 0;
-    },
-
-    afterPrepend() {
-        this.$nextTick(() => {
-            const log = this.$refs.log;
-            if (log) log.scrollTop = this.previousTop + (log.scrollHeight - this.previousHeight);
-        });
+        this.stickToTop = !log || log.scrollTop < 72;
     },
 
     afterUpdate() {
-        if (this.stickToBottom) this.$nextTick(() => this.scrollToBottom());
+        if (this.stickToTop) this.$nextTick(() => this.scrollToTop());
     },
 
     afterLatest() {
-        this.stickToBottom = true;
-        this.$nextTick(() => this.scrollToBottom());
+        this.stickToTop = true;
+        this.$nextTick(() => this.scrollToTop());
     },
 
-    scrollToBottom() {
+    scrollToTop() {
         const log = this.$refs.log;
-        if (log) log.scrollTop = log.scrollHeight;
+        if (log) log.scrollTo({ top: 0, behavior: 'smooth' });
     },
 });

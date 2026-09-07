@@ -18,7 +18,7 @@ class PlayerChatQuery
             ->limit(self::BATCH_SIZE + 1)
             ->get();
         $hasOlder = $messages->count() > self::BATCH_SIZE;
-        $messages = $messages->take(self::BATCH_SIZE)->reverse()->values();
+        $messages = $messages->take(self::BATCH_SIZE)->values();
 
         return ['messages' => $messages, 'has_older' => $hasOlder];
     }
@@ -31,7 +31,7 @@ class PlayerChatQuery
             ->limit(self::BATCH_SIZE + 1)
             ->get();
         $hasOlder = $messages->count() > self::BATCH_SIZE;
-        $messages = $messages->take(self::BATCH_SIZE)->reverse()->values();
+        $messages = $messages->take(self::BATCH_SIZE)->values();
 
         return ['messages' => $messages, 'has_older' => $hasOlder];
     }
@@ -62,6 +62,6 @@ class PlayerChatQuery
     {
         return $player->chatMessages()
             ->select(['id', 'player_id', 'user_id', 'body', 'created_at'])
-            ->with('user:id,name,username,avatar_path');
+            ->with('user:id,name,username,avatar_path,role');
     }
 }

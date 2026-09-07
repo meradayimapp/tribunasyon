@@ -14,7 +14,13 @@ class CommentPolicy
 
     public function delete(User $user, Comment $comment): bool
     {
+        if (! $comment->user->isAdmin() && $user->id === $comment->user_id) {
+            return true;
+        }
+
         return $user->isModerator()
+            && ! $comment->user->isAdmin()
+            && ! $comment->user->isModerator()
             && $user->moderatedTeams()->whereKey($comment->post->team_id)->exists();
     }
 }
