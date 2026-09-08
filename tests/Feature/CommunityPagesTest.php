@@ -23,9 +23,13 @@ class CommunityPagesTest extends TestCase
         $this->assertArrayNotHasKey('created_by', $post->toArray());
     }
 
-    public function test_matches_page_uses_working_mock_data(): void
+    public function test_matches_page_has_a_database_backed_empty_state(): void
     {
-        $this->get('/maclar')->assertOk()->assertSee('Bugünün maçları')->assertSee('Fenerbahçe')->assertSee('CANLI');
+        $this->get('/maclar')
+            ->assertOk()
+            ->assertSee('Bugünün maçları')
+            ->assertSee('Bugün takip edilen organizasyonlarda maç yok.')
+            ->assertDontSee('mock');
     }
 
     public function test_followed_team_feed_excludes_other_teams(): void

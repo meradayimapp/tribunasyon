@@ -34,6 +34,11 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'live_football_api' => [
+        'key' => env('LIVE_FOOTBALL_API_KEY'),
+        'base_url' => env('LIVE_FOOTBALL_API_BASE_URL', 'https://live-football-api.com/api/v1'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

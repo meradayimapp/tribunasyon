@@ -10,7 +10,7 @@ class MatchController extends Controller
 {
     public function __invoke(FootballDataService $service): View
     {
-        $date = Carbon::today();
+        $date = Carbon::today('Europe/Istanbul');
 
         return view('matches.index', ['date' => $date, 'matches' => $service->matchesForDate($date)]);
     }

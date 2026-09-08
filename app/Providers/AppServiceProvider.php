@@ -7,7 +7,7 @@ use App\Models\Comment;
 use App\Models\Post;
 use App\Models\SiteSetting;
 use App\Observers\PostObserver;
-use App\Services\MockFootballDataService;
+use App\Services\DatabaseFootballDataService;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
@@ -20,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(FootballDataService::class, MockFootballDataService::class);
+        $this->app->bind(FootballDataService::class, DatabaseFootballDataService::class);
     }
 
     /**
