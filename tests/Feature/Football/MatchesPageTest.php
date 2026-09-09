@@ -53,7 +53,7 @@ class MatchesPageTest extends TestCase
                 'display_name' => 'Arsenal',
                 'is_active' => true,
             ]);
-            FootballMatch::create([
+            $match = FootballMatch::create([
                 'competition_id' => $competition->id,
                 'home_football_team_id' => $home->id,
                 'away_football_team_id' => $away->id,
@@ -74,15 +74,17 @@ class MatchesPageTest extends TestCase
                 ->assertDontSee('Display Fenerbahçe')
                 ->assertSee('Arsenal')
                 ->assertSee('Süper Lig')
-                ->assertSee('20:00')
-                ->assertSee('2 – 1')
-                ->assertSee("73'")
+                ->assertDontSee('>20:00<', false)
+                ->assertSee('<strong>2 <span>–</span> 1</strong>', false)
+                ->assertSee('73′')
+                ->assertSee('match-card-live-label', false)
                 ->assertSee(route('matches.show', $match), false)
                 ->assertSee(route('teams.show', $communityTeam), false)
                 ->assertSee(route('football-teams.show', $away), false)
                 ->assertDontSee('17:00');
 
-            $this->assertSame(1, substr_count($response->getContent(), '20:00'));
+            $this->assertSame(0, substr_count($response->getContent(), '>20:00<'));
+            $this->assertSame(1, substr_count($response->getContent(), 'match-card-live-label'));
         } finally {
             Carbon::setTestNow();
         }
@@ -114,7 +116,7 @@ class MatchesPageTest extends TestCase
                 'provider' => 'live-football-api', 'provider_team_id' => 'time-away',
                 'provider_name' => 'Deplasman', 'is_active' => true,
             ]);
-            FootballMatch::create([
+            $match = FootballMatch::create([
                 'competition_id' => $competition->id,
                 'home_football_team_id' => $home->id,
                 'away_football_team_id' => $away->id,
@@ -128,7 +130,20 @@ class MatchesPageTest extends TestCase
                 ->assertSee('22:00')
                 ->assertSee('Başlamadı')
                 ->assertDontSee('19:00');
-            $this->assertSame(1, substr_count($response->getContent(), '22:00'));
+            $this->assertSame(1, substr_count($response->getContent(), '>22:00<'));
+
+            $match->update([
+                'status' => 'finished',
+                'status_display' => 'Bitti',
+                'home_score' => 3,
+                'away_score' => 2,
+            ]);
+
+            $this->get(route('matches.index'))
+                ->assertOk()
+                ->assertSee('<strong>3 <span>–</span> 2</strong>', false)
+                ->assertSee('Bitti')
+                ->assertDontSee('>22:00<', false);
         } finally {
             Carbon::setTestNow();
         }

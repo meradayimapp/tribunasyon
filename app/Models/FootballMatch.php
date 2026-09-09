@@ -109,6 +109,19 @@ class FootballMatch extends Model
         return in_array(strtolower($this->status), self::TERMINAL_STATUSES, true);
     }
 
+    public function displayMinute(): ?int
+    {
+        if ($this->live_minute !== null) {
+            return $this->live_minute;
+        }
+
+        if ($this->is_live && preg_match('/^(\d{1,3})[\'′]?$/u', trim((string) $this->status_display), $matches)) {
+            return (int) $matches[1];
+        }
+
+        return null;
+    }
+
     public function statePayload(): array
     {
         return [
@@ -116,7 +129,7 @@ class FootballMatch extends Model
             'is_live' => $this->is_live,
             'is_finished' => $this->isFinished(),
             'score' => ['home' => $this->home_score, 'away' => $this->away_score],
-            'minute' => $this->live_minute,
+            'minute' => $this->displayMinute(),
             'status_display' => $this->stateStatusLabel(),
             'events' => $this->live_events ?? [],
             'updated_at' => ($this->live_details_synced_at ?? $this->last_synced_at)?->toIso8601String(),
@@ -125,7 +138,7 @@ class FootballMatch extends Model
 
     public function stateStatusLabel(): string
     {
-        if ($this->is_live && $this->live_minute !== null && preg_match('/^\d{1,3}[\'′]?$/u', (string) $this->status_display)) {
+        if ($this->is_live && $this->displayMinute() !== null && preg_match('/^\d{1,3}[\'′]?$/u', (string) $this->status_display)) {
             return 'CANLI';
         }
 

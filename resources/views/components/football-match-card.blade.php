@@ -50,25 +50,57 @@
         </a>
     </article>
 @else
-<article class="match-card">
-    <a class="match-card-link" href="{{ route('matches.show', $match) }}" aria-label="{{ $match->homeTeam->resolved_name }} - {{ $match->awayTeam->resolved_name }} maçını aç"></a>
-    <div class="match-team">
-        <x-football-team-link :team="$match->homeTeam" />
-        <small class="d-block muted">{{ $match->competition->display_name ?: $match->competition->name }}</small>
-    </div>
-    <div class="match-score">
-        @if($match->home_score === null && $match->away_score === null)
-            <span>{{ $match->kickoffTime() }}</span>
-        @else
-            <span>{{ $match->home_score ?? '–' }} – {{ $match->away_score ?? '–' }}</span>
-        @endif
-        <small class="d-block {{ $match->is_live ? 'text-danger' : 'muted' }}">{{ $match->statusLabel() }}</small>
-        @if($match->home_score !== null || $match->away_score !== null)
-            <small class="d-block muted match-kickoff-time">{{ $match->kickoffTime() }}</small>
-        @endif
-    </div>
-    <div class="match-team">
-        <x-football-team-link :team="$match->awayTeam" :away="true" />
-    </div>
-</article>
+    @php
+        $isFinished = strtolower($match->status) === 'finished';
+        $isScheduled = in_array(strtolower($match->status), ['scheduled', 'not_started'], true);
+        $liveMinute = $match->displayMinute();
+        $statusDisplay = mb_strtolower((string) $match->status_display);
+        $isHalfTime = $match->is_live && (
+            str_contains($statusDisplay, 'devre')
+            || str_contains($statusDisplay, 'half')
+            || in_array(mb_strtoupper((string) $match->status_display), ['HT', 'İY'], true)
+        );
+    @endphp
+    <article @class(['match-card', 'is-live' => $match->is_live, 'is-finished' => $isFinished])>
+        <a class="match-card-link" href="{{ route('matches.show', $match) }}" aria-label="{{ $match->homeTeam->resolved_name }} - {{ $match->awayTeam->resolved_name }} maçını aç"></a>
+
+        <header class="match-card-header">
+            <span>{{ $match->competition->display_name ?: $match->competition->name }}</span>
+            @if($match->is_live)
+                <span class="match-card-live-label"><i></i>{{ $isHalfTime ? 'Devre Arası' : 'Canlı' }}</span>
+            @else
+                <time datetime="{{ $match->kickoffInDisplayTimezone()->toIso8601String() }}">{{ $match->kickoffInDisplayTimezone()->locale('tr')->translatedFormat('d M') }}</time>
+            @endif
+        </header>
+
+        <div class="match-card-stage">
+            <div class="match-card-team match-card-team-home">
+                <x-football-team-link :team="$match->homeTeam" />
+            </div>
+
+            <div class="match-card-score" aria-label="Maç durumu">
+                @if($match->is_live)
+                    <strong>{{ $match->home_score ?? '–' }} <span>–</span> {{ $match->away_score ?? '–' }}</strong>
+                    @if($liveMinute !== null)<small class="match-card-running">{{ $liveMinute }}′</small>@endif
+                @elseif($isFinished)
+                    <strong>{{ $match->home_score ?? '–' }} <span>–</span> {{ $match->away_score ?? '–' }}</strong>
+                    <small>Bitti</small>
+                @elseif($isScheduled)
+                    <strong>{{ $match->kickoffTime() }}</strong>
+                    <small>Başlamadı</small>
+                @else
+                    @if($match->home_score !== null || $match->away_score !== null)
+                        <strong>{{ $match->home_score ?? '–' }} <span>–</span> {{ $match->away_score ?? '–' }}</strong>
+                    @endif
+                    <small>{{ $match->statusLabel() }}</small>
+                @endif
+            </div>
+
+            <div class="match-card-team match-card-team-away">
+                <x-football-team-link :team="$match->awayTeam" :away="true" />
+            </div>
+        </div>
+
+        <span class="match-card-open" aria-hidden="true"><x-ui.icon name="chevron-right" /></span>
+    </article>
 @endif

@@ -7,12 +7,11 @@
 >
     <div class="player-chat-heading">
         <div class="player-chat-title">
-            @if($footballMatch->is_live)
-                <span class="player-chat-live"><i></i> Canlı</span>
-            @elseif(strtolower($footballMatch->status) === 'finished')
-                <span class="player-chat-state-finished">Maç Bitti</span>
-            @endif
-            <div><h2>{{ $footballMatch->is_live ? 'Canlı Maç Sohbeti' : 'Maç Sohbeti' }}</h2><p>En yeni mesajlar her zaman üstte</p></div>
+            <span class="match-chat-community-icon"><x-ui.icon name="comment" /></span>
+            <div>
+                <h2>{{ $footballMatch->is_live ? 'Canlı Maç Sohbeti' : 'Maç Sohbeti' }}</h2>
+                <p>{{ strtolower($footballMatch->status) === 'finished' ? 'Maç bitti, sohbet devam ediyor' : 'Tribünle birlikte takip et' }}</p>
+            </div>
         </div>
         <span class="player-chat-refresh"><x-ui.icon name="activity" /> 3 sn'de güncellenir</span>
     </div>

@@ -92,15 +92,17 @@ class MatchDetailsTest extends TestCase
             ->assertDontSee('player-chat-live', false);
 
         $match->update(['status' => 'live', 'status_display' => 'CANLI', 'is_live' => true]);
-        $this->get(route('matches.show', $match))
+        $liveResponse = $this->get(route('matches.show', $match))
             ->assertOk()
             ->assertSee('Canlı Maç Sohbeti')
-            ->assertSee('player-chat-live', false);
+            ->assertSee('match-center-status', false)
+            ->assertDontSee('player-chat-live', false);
+        $this->assertSame(1, substr_count($liveResponse->getContent(), 'match-center-status'));
 
         $match->update(['status' => 'finished', 'status_display' => 'Bitti', 'is_live' => false]);
         $this->get(route('matches.show', $match))
             ->assertOk()
-            ->assertSee('Maç Bitti')
+            ->assertSee('Maç bitti, sohbet devam ediyor')
             ->assertSee('Maç Sohbeti')
             ->assertDontSee('Canlı Maç Sohbeti');
     }
@@ -123,8 +125,8 @@ class MatchDetailsTest extends TestCase
             ->assertSee('Maç Olayları')
             ->assertSee('Golcü')
             ->assertSee('Sarı Kart')
-            ->assertSee('Giren: Giren Oyuncu')
-            ->assertSee('Çıkan: Çıkan Oyuncu')
+            ->assertSee('Giren · Giren Oyuncu')
+            ->assertSee('Çıkan · Çıkan Oyuncu')
             ->assertSee('data-event-type="goal"', false)
             ->assertSee('data-event-type="yellow_card"', false)
             ->assertSee('data-event-type="substitution"', false);
@@ -155,7 +157,7 @@ class MatchDetailsTest extends TestCase
             ],
         ]);
 
-        $this->get(route('matches.show', $match))
+        $response = $this->get(route('matches.show', $match))
             ->assertOk()
             ->assertSee('Test Stadı')
             ->assertSee('Test Hakemi')
@@ -167,7 +169,14 @@ class MatchDetailsTest extends TestCase
             ->assertSee('Maç İstatistikleri')
             ->assertSee('Topa Sahip Olma')
             ->assertSee('46%')
-            ->assertSee('54%');
+            ->assertSee('54%')
+            ->assertSee('x-show="activePanel === \'stats\'"', false)
+            ->assertSee('x-show="activePanel === \'lineups\'"', false);
+
+        $this->assertLessThan(
+            strpos($response->getContent(), 'match-details-drawer'),
+            strpos($response->getContent(), 'match-chat-priority'),
+        );
     }
 
     public function test_match_pages_eager_load_their_required_relations(): void

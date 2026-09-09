@@ -213,6 +213,7 @@ window.playerChatScroll = () => ({
 window.matchLiveState = (url, initial) => ({
     url,
     timer: null,
+    activePanel: null,
     isLive: Boolean(initial.is_live),
     isFinished: Boolean(initial.is_finished),
     status: initial.status,
@@ -227,7 +228,30 @@ window.matchLiveState = (url, initial) => ({
     },
 
     get centerStatus() {
-        return this.status === 'finished' ? 'MS' : this.statusDisplay;
+        if (this.status === 'finished') {
+            return 'Bitti';
+        }
+
+        if (this.isLive) {
+            const status = String(this.statusDisplay ?? '').toLocaleLowerCase('tr-TR');
+            const isHalfTime = status.includes('devre') || status.includes('half') || ['ht', 'iy', 'i̇y'].includes(status);
+
+            return isHalfTime ? 'Devre Arası' : 'Canlı';
+        }
+
+        if (['scheduled', 'not_started'].includes(this.status)) {
+            return 'Başlamadı';
+        }
+
+        return this.statusDisplay;
+    },
+
+    togglePanel(panel) {
+        this.activePanel = this.activePanel === panel ? null : panel;
+    },
+
+    closePanel() {
+        this.activePanel = null;
     },
 
     init() {
@@ -286,42 +310,49 @@ window.matchLiveState = (url, initial) => ({
 
         const rows = this.events.map((event) => {
             const side = ['home', 'away'].includes(event.side) ? event.side : 'neutral';
+            const type = ['goal', 'yellow_card', 'red_card', 'substitution'].includes(event.type) ? event.type : 'event';
             const row = document.createElement('article');
             row.className = `match-event side-${side}`;
-            row.dataset.eventType = event.type || 'event';
+            row.dataset.eventType = type;
 
+            const node = document.createElement('div');
+            node.className = 'match-event-node';
             const time = document.createElement('time');
             time.textContent = event.time === null || event.time === undefined || event.time === '' ? '–' : `${event.time}′`;
-
-            const copy = document.createElement('div');
-            copy.className = 'match-event-copy';
             const symbol = document.createElement('span');
             symbol.className = 'match-event-symbol';
             symbol.setAttribute('aria-hidden', 'true');
-            const details = document.createElement('span');
+            node.append(time, symbol);
+
+            const content = document.createElement('div');
+            content.className = 'match-event-content';
+            const copy = document.createElement('span');
+            copy.className = 'match-event-copy';
             const label = document.createElement('strong');
             label.textContent = event.label || event.type || 'Olay';
-            details.append(label);
+            copy.append(label);
 
             [
                 event.player_name,
-                event.player_in ? `Giren: ${event.player_in}` : null,
-                event.player_out ? `Çıkan: ${event.player_out}` : null,
+                event.player_in ? `Giren · ${event.player_in}` : null,
+                event.player_out ? `Çıkan · ${event.player_out}` : null,
             ].filter(Boolean).forEach((value) => {
                 const detail = document.createElement('small');
                 detail.textContent = value;
-                details.append(detail);
+                if (event.player_in && value.startsWith('Giren')) detail.className = 'player-in';
+                if (event.player_out && value.startsWith('Çıkan')) detail.className = 'player-out';
+                copy.append(detail);
             });
 
-            copy.append(symbol, details);
+            content.append(copy);
 
             if (event.score) {
                 const score = document.createElement('b');
                 score.textContent = event.score;
-                copy.append(score);
+                content.append(score);
             }
 
-            row.append(time, copy);
+            row.append(node, content);
 
             return row;
         });
