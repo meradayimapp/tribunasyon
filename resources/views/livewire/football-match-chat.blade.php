@@ -7,8 +7,12 @@
 >
     <div class="player-chat-heading">
         <div class="player-chat-title">
-            <span class="player-chat-live"><i></i> Canlı</span>
-            <div><h2>Canlı Maç Sohbeti</h2><p>En yeni mesajlar her zaman üstte</p></div>
+            @if($footballMatch->is_live)
+                <span class="player-chat-live"><i></i> Canlı</span>
+            @elseif(strtolower($footballMatch->status) === 'finished')
+                <span class="player-chat-state-finished">Maç Bitti</span>
+            @endif
+            <div><h2>{{ $footballMatch->is_live ? 'Canlı Maç Sohbeti' : 'Maç Sohbeti' }}</h2><p>En yeni mesajlar her zaman üstte</p></div>
         </div>
         <span class="player-chat-refresh"><x-ui.icon name="activity" /> 3 sn'de güncellenir</span>
     </div>
@@ -20,7 +24,7 @@
         </button>
     @endif
 
-    <div class="player-chat-log" x-ref="log" @scroll.passive="onScroll()" role="log" aria-live="polite" aria-label="Canlı maç sohbeti mesajları">
+    <div class="player-chat-log" x-ref="log" @scroll.passive="onScroll()" role="log" aria-live="polite" aria-label="Maç sohbeti mesajları">
         @forelse($messages as $message)
             <article class="player-chat-message role-{{ $message['user']['role'] }}" wire:key="football-match-message-{{ $message['id'] }}">
                 <a href="{{ route('profile.show', $message['user']['username']) }}" class="avatar avatar-sm" aria-label="{{ $message['user']['name'] }} profili">

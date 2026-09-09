@@ -77,6 +77,25 @@ class LiveFootballApiService
         return $data;
     }
 
+    public function lineups(string $matchId): array
+    {
+        $matchId = trim($matchId);
+
+        if ($matchId === '') {
+            throw new LiveFootballApiException('Kadro maç kimliği boş olamaz.');
+        }
+
+        $data = $this->get('lineups', ['match_id' => $matchId]);
+
+        if ((string) ($data['match_id'] ?? '') !== $matchId
+            || ! is_array($data['home'] ?? null)
+            || ! is_array($data['away'] ?? null)) {
+            throw new LiveFootballApiException('Kadro yanıtı beklenen veri yapısında değil.');
+        }
+
+        return $data;
+    }
+
     private function get(string $endpoint, array $query): array
     {
         $key = trim((string) config('services.live_football_api.key'));

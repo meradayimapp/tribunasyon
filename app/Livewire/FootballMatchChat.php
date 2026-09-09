@@ -73,6 +73,8 @@ class FootballMatchChat extends Component
 
     public function poll(FootballMatchChatQuery $query): void
     {
+        $this->footballMatch->refresh();
+
         if ($this->viewingHistory) {
             $delta = $query->delta($this->footballMatch, $this->lastKnownMessageId);
             $this->unseenCount += $delta['count'];

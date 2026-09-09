@@ -1,7 +1,7 @@
 @props(['name'])
 
 {{-- Pinterest Gestalt v159.11.0, Copyright 2018 Pinterest Inc., Apache-2.0.
-     Modified: SVG paths consolidated into Blade; football, trophy, more and activity are local.
+     Modified: SVG paths consolidated into Blade; core outline icons, football, trophy, more and activity are local.
      See licenses/gestalt-LICENSE.txt and licenses/gestalt-NOTICE.md. --}}
 @php
     $paths = [
@@ -38,17 +38,39 @@
         'info' => 'M12 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m1.5 7.5a1.5 1.5 0 1 1-3 0v-5a1.5 1.5 0 1 1 3 0zM12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24',
         'more' => 'M6 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0m8 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0m8 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
     ];
+    $outlinePaths = [
+        'home' => 'M3 10.5 12 3l9 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-5v-6h-5v6h-5A1.5 1.5 0 0 1 3 19.5z',
+        'teams' => 'M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8m12.5 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+        'people' => 'M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8m12.5 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+        'person' => 'M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10',
+        'search' => 'm21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
+        'sun' => 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42',
+        'moon' => 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79',
+        'menu' => 'M4 7h16M4 12h16M4 17h16',
+        'close' => 'M6 6l12 12M18 6 6 18',
+        'back' => 'm15 18-6-6 6-6',
+        'arrow-right' => 'm9 18 6-6-6-6',
+        'heart' => 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78',
+        'comment' => 'M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z',
+        'send' => 'm22 2-7 20-4-9-9-4zM22 2 11 13',
+        'reply' => 'm9 17-5-5 5-5M4 12h10a6 6 0 0 1 6 6',
+        'chevron-left' => 'm15 18-6-6 6-6',
+        'chevron-right' => 'm9 18 6-6-6-6',
+        'calendar' => 'M6 2v4m12-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v15H3V6a2 2 0 0 1 2-2',
+    ];
 @endphp
 @if($name === 'theme')
     <span {{ $attributes->class(['ui-theme-icon']) }} aria-hidden="true"><x-ui.icon name="sun" class="ui-theme-icon__sun" /><x-ui.icon name="moon" class="ui-theme-icon__moon" /></span>
+@elseif(isset($outlinePaths[$name]))
+    <svg {{ $attributes->class(['ui-icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="{{ $outlinePaths[$name] }}" /></svg>
 @elseif($name === 'football')
-    <svg {{ $attributes->class(['ui-icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <svg {{ $attributes->class(['ui-icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <circle cx="12" cy="12" r="9.5" /><path d="m12 7 4.8 3.5-1.8 5.6H9l-1.8-5.6ZM12 7V2.5m4.8 8 4.4-1.4M15 16.1l2.7 3.8M9 16.1l-2.7 3.8m.9-9.4L2.8 9.1" />
     </svg>
 @elseif($name === 'trophy')
-    <svg {{ $attributes->class(['ui-icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3h10v7a5 5 0 0 1-10 0ZM7 5H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4m-5 3v6m-4 0h8" /></svg>
+    <svg {{ $attributes->class(['ui-icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3h10v7a5 5 0 0 1-10 0ZM7 5H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4m-5 3v6m-4 0h8" /></svg>
 @elseif($name === 'activity')
-    <svg {{ $attributes->class(['ui-icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12h5l3-8 4 16 3-8h5" /></svg>
+    <svg {{ $attributes->class(['ui-icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12h5l3-8 4 16 3-8h5" /></svg>
 @else
     @php
         if (! isset($paths[$name])) {

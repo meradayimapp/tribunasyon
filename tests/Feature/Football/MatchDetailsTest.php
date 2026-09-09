@@ -31,7 +31,8 @@ class MatchDetailsTest extends TestCase
             ->assertSee('Rakip')
             ->assertSee('20:00')
             ->assertSee('Başlamadı')
-            ->assertSee('Canlı Maç Sohbeti')
+            ->assertSee('Maç Sohbeti')
+            ->assertDontSee('Canlı Maç Sohbeti')
             ->assertSee('Giriş yap')
             ->assertSee(route('teams.show', $community), false)
             ->assertSee(route('football-teams.show', $away), false);
@@ -67,7 +68,7 @@ class MatchDetailsTest extends TestCase
             ->assertExactJson([
                 'status' => 'live', 'is_live' => true, 'is_finished' => false,
                 'score' => ['home' => 1, 'away' => 0], 'minute' => 37,
-                'status_display' => 'CANLI', 'updated_at' => null,
+                'status_display' => 'CANLI', 'events' => [], 'updated_at' => null,
             ]);
         Http::assertNothingSent();
 
@@ -79,6 +80,94 @@ class MatchDetailsTest extends TestCase
             ->assertJsonPath('score.home', 2)
             ->assertJsonPath('status_display', 'Bitti');
         Http::assertNothingSent();
+    }
+
+    public function test_chat_badge_and_heading_follow_the_real_match_status(): void
+    {
+        [$match] = $this->match();
+
+        $this->get(route('matches.show', $match))
+            ->assertOk()
+            ->assertSee('Maç Sohbeti')
+            ->assertDontSee('player-chat-live', false);
+
+        $match->update(['status' => 'live', 'status_display' => 'CANLI', 'is_live' => true]);
+        $this->get(route('matches.show', $match))
+            ->assertOk()
+            ->assertSee('Canlı Maç Sohbeti')
+            ->assertSee('player-chat-live', false);
+
+        $match->update(['status' => 'finished', 'status_display' => 'Bitti', 'is_live' => false]);
+        $this->get(route('matches.show', $match))
+            ->assertOk()
+            ->assertSee('Maç Bitti')
+            ->assertSee('Maç Sohbeti')
+            ->assertDontSee('Canlı Maç Sohbeti');
+    }
+
+    public function test_match_center_renders_normalized_events_without_failing_on_null_players(): void
+    {
+        [$match] = $this->match([
+            'status' => 'live',
+            'status_display' => 'CANLI',
+            'is_live' => true,
+            'live_events' => [
+                ['time' => '17', 'type' => 'goal', 'label' => 'Gol', 'side' => 'home', 'player_name' => 'Golcü', 'score' => '1-0'],
+                ['time' => '31', 'type' => 'yellow_card', 'label' => 'Sarı Kart', 'side' => 'away'],
+                ['time' => '55', 'type' => 'substitution', 'label' => 'Oyuncu Değişikliği', 'side' => 'home', 'player_in' => 'Giren Oyuncu', 'player_out' => 'Çıkan Oyuncu'],
+            ],
+        ]);
+
+        $this->get(route('matches.show', $match))
+            ->assertOk()
+            ->assertSee('Maç Olayları')
+            ->assertSee('Golcü')
+            ->assertSee('Sarı Kart')
+            ->assertSee('Giren: Giren Oyuncu')
+            ->assertSee('Çıkan: Çıkan Oyuncu')
+            ->assertSee('data-event-type="goal"', false)
+            ->assertSee('data-event-type="yellow_card"', false)
+            ->assertSee('data-event-type="substitution"', false);
+    }
+
+    public function test_match_center_only_renders_real_optional_details_lineups_and_stats(): void
+    {
+        [$match] = $this->match();
+
+        $this->get(route('matches.show', $match))
+            ->assertOk()
+            ->assertDontSee('<dt>Durum</dt>', false)
+            ->assertDontSee('id="lineups-title"', false)
+            ->assertDontSee('id="stats-title"', false);
+
+        $match->update([
+            'venue_name' => 'Test Stadı',
+            'referee_name' => 'Test Hakemi',
+            'tv_channels' => ['TRT Spor'],
+            'lineups' => [
+                'home' => ['starting' => [['id' => 'p1', 'name' => 'Ev Oyuncusu', 'number' => '9', 'position' => 'Forvet']]],
+                'away' => ['starting' => [['id' => 'p2', 'name' => 'Rakip Oyuncusu']]],
+                'formation' => ['home' => '4-3-3', 'away' => '4-2-3-1'],
+            ],
+            'match_stats' => [
+                ['label' => 'Topa Sahip Olma', 'home' => '46%', 'away' => '54%'],
+                ['label' => 'Şut', 'home' => '8', 'away' => '12'],
+            ],
+        ]);
+
+        $this->get(route('matches.show', $match))
+            ->assertOk()
+            ->assertSee('Test Stadı')
+            ->assertSee('Test Hakemi')
+            ->assertSee('TRT Spor')
+            ->assertSee('İlk 11')
+            ->assertSee('Ev Oyuncusu')
+            ->assertSee('Rakip Oyuncusu')
+            ->assertSee('4-3-3')
+            ->assertSee('Maç İstatistikleri')
+            ->assertSee('Topa Sahip Olma')
+            ->assertSee('46%')
+            ->assertSee('54%');
     }
 
     public function test_match_pages_eager_load_their_required_relations(): void

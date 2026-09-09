@@ -215,13 +215,19 @@ window.matchLiveState = (url, initial) => ({
     timer: null,
     isLive: Boolean(initial.is_live),
     isFinished: Boolean(initial.is_finished),
+    status: initial.status,
     homeScore: initial.score?.home ?? null,
     awayScore: initial.score?.away ?? null,
     minute: initial.minute ?? null,
     statusDisplay: initial.status_display,
+    events: Array.isArray(initial.events) ? initial.events : [],
 
     get scoreKnown() {
         return this.homeScore !== null || this.awayScore !== null;
+    },
+
+    get centerStatus() {
+        return this.status === 'finished' ? 'MS' : this.statusDisplay;
     },
 
     init() {
@@ -260,13 +266,66 @@ window.matchLiveState = (url, initial) => ({
             const state = await response.json();
             this.isLive = Boolean(state.is_live);
             this.isFinished = Boolean(state.is_finished);
+            this.status = state.status;
             this.homeScore = state.score?.home ?? null;
             this.awayScore = state.score?.away ?? null;
             this.minute = state.minute ?? null;
             this.statusDisplay = state.status_display;
+            this.events = Array.isArray(state.events) ? state.events : [];
+            this.$nextTick(() => this.renderEvents());
             if (!this.isLive || this.isFinished) this.stop();
         } catch (error) {
             // Keep the last database-backed state visible during transient failures.
         }
+    },
+
+    renderEvents() {
+        const list = this.$refs.eventsList;
+
+        if (!list) return;
+
+        const rows = this.events.map((event) => {
+            const side = ['home', 'away'].includes(event.side) ? event.side : 'neutral';
+            const row = document.createElement('article');
+            row.className = `match-event side-${side}`;
+            row.dataset.eventType = event.type || 'event';
+
+            const time = document.createElement('time');
+            time.textContent = event.time === null || event.time === undefined || event.time === '' ? '–' : `${event.time}′`;
+
+            const copy = document.createElement('div');
+            copy.className = 'match-event-copy';
+            const symbol = document.createElement('span');
+            symbol.className = 'match-event-symbol';
+            symbol.setAttribute('aria-hidden', 'true');
+            const details = document.createElement('span');
+            const label = document.createElement('strong');
+            label.textContent = event.label || event.type || 'Olay';
+            details.append(label);
+
+            [
+                event.player_name,
+                event.player_in ? `Giren: ${event.player_in}` : null,
+                event.player_out ? `Çıkan: ${event.player_out}` : null,
+            ].filter(Boolean).forEach((value) => {
+                const detail = document.createElement('small');
+                detail.textContent = value;
+                details.append(detail);
+            });
+
+            copy.append(symbol, details);
+
+            if (event.score) {
+                const score = document.createElement('b');
+                score.textContent = event.score;
+                copy.append(score);
+            }
+
+            row.append(time, copy);
+
+            return row;
+        });
+
+        list.replaceChildren(...rows);
     },
 });

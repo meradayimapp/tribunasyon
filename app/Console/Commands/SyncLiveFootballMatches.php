@@ -33,7 +33,7 @@ class SyncLiveFootballMatches extends Command
             $lock->release();
         }
 
-        $this->info("{$result['candidates']} aday değerlendirildi; {$result['details']} canlı detay güncellendi.");
+        $this->info("{$result['candidates']} aday değerlendirildi; {$result['details']} canlı detay, {$result['lineups']} ilk 11 güncellendi.");
 
         if ($result['failed'] > 0) {
             $this->warn("{$result['failed']} API isteği başarısız oldu; mevcut veriler korundu.");

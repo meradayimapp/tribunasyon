@@ -20,19 +20,24 @@
         </a>
     </article>
 @elseif($variant === 'compact')
+    @php
+        $finishedWithScore = strtolower($match->status) === 'finished' && $match->home_score !== null && $match->away_score !== null;
+        $homeWinner = $finishedWithScore && $match->home_score > $match->away_score;
+        $awayWinner = $finishedWithScore && $match->away_score > $match->home_score;
+    @endphp
     <article class="compact-match-card">
         <a href="{{ route('matches.show', $match) }}" aria-label="{{ $match->homeTeam->resolved_name }} - {{ $match->awayTeam->resolved_name }} maçını aç">
             <time class="compact-match-date" datetime="{{ $match->kickoffInDisplayTimezone()->toIso8601String() }}">{{ $match->kickoffInDisplayTimezone()->locale('tr')->translatedFormat('d M') }}</time>
             <span class="compact-match-team">
                 @if($logo = $match->homeTeam->logoUrl())<img src="{{ $logo }}" alt="" loading="lazy" decoding="async">@endif
-                <strong>{{ $match->homeTeam->resolved_name }}</strong>
+                <strong @class(['winner' => $homeWinner])>{{ $match->homeTeam->resolved_name }}</strong>
             </span>
             <span class="compact-match-score">
                 @if($match->home_score === null && $match->away_score === null)<strong>{{ $match->kickoffTime() }}</strong>@else<strong>{{ $match->home_score ?? '–' }} - {{ $match->away_score ?? '–' }}</strong>@endif
-                <small>{{ $match->statusLabel() }}</small>
+                <small>{{ strtolower($match->status) === 'finished' ? 'MS' : $match->statusLabel() }}</small>
             </span>
             <span class="compact-match-team compact-match-team-away">
-                <strong>{{ $match->awayTeam->resolved_name }}</strong>
+                <strong @class(['winner' => $awayWinner])>{{ $match->awayTeam->resolved_name }}</strong>
                 @if($logo = $match->awayTeam->logoUrl())<img src="{{ $logo }}" alt="" loading="lazy" decoding="async">@endif
             </span>
             <span class="compact-match-meta">{{ $match->competition->display_name ?: $match->competition->name }}</span>

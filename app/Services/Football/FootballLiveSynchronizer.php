@@ -16,6 +16,12 @@ class FootballLiveSynchronizer
 
     private const DETAIL_THROTTLE_SECONDS = 45;
 
+    private const LINEUP_WINDOW_MINUTES = 75;
+
+    private const LINEUP_AFTER_KICKOFF_MINUTES = 10;
+
+    private const LINEUP_RETRY_MINUTES = 20;
+
     public function __construct(
         private readonly LiveFootballApiService $api,
         private readonly FootballDataSynchronizer $fixtures,
@@ -26,15 +32,12 @@ class FootballLiveSynchronizer
         $now = CarbonImmutable::now('UTC');
         $candidates = $this->candidateQuery($now)->get(['football_matches.id', 'football_matches.kickoff_at']);
 
-        if ($candidates->isEmpty()) {
-            return ['candidates' => 0, 'dates' => 0, 'details' => 0, 'failed' => 0];
-        }
-
         $dates = $candidates
             ->map(fn (FootballMatch $match): string => $match->kickoffInDisplayTimezone()->format('Y-m-d'))
             ->unique();
         $dateCalls = 0;
         $failed = 0;
+        $details = $this->syncLiveDetails($now, $failed);
 
         foreach ($dates as $date) {
             $throttleKey = "football:live:matches:{$date}";
@@ -51,6 +54,32 @@ class FootballLiveSynchronizer
             }
         }
 
+        $details += $this->syncLiveDetails($now, $failed);
+
+        $lineups = 0;
+        $lineupMatches = $this->lineupCandidateQuery($now)->get();
+
+        foreach ($lineupMatches as $match) {
+            $throttleKey = "football:lineups:{$match->provider}:{$match->provider_match_id}";
+            if (! Cache::add($throttleKey, true, now()->addMinutes(self::LINEUP_RETRY_MINUTES))) {
+                continue;
+            }
+
+            try {
+                if ($this->syncLineups($match)) {
+                    $lineups++;
+                }
+            } catch (Throwable) {
+                Cache::forget($throttleKey);
+                $failed++;
+            }
+        }
+
+        return ['candidates' => $candidates->count(), 'dates' => $dateCalls, 'details' => $details, 'lineups' => $lineups, 'failed' => $failed];
+    }
+
+    private function syncLiveDetails(CarbonImmutable $now, int &$failed): int
+    {
         $liveMatches = $this->candidateQuery($now)
             ->where('football_matches.is_live', true)
             ->where(fn (Builder $query): Builder => $query
@@ -74,7 +103,7 @@ class FootballLiveSynchronizer
             }
         }
 
-        return ['candidates' => $candidates->count(), 'dates' => $dateCalls, 'details' => $details, 'failed' => $failed];
+        return $details;
     }
 
     public function syncDetails(FootballMatch $match): void
@@ -110,8 +139,53 @@ class FootballLiveSynchronizer
         if (is_array($data['events'] ?? null)) {
             $attributes['live_events'] = $this->normalizeEvents($data['events']);
         }
+        if (is_array($data['stats'] ?? null)) {
+            $attributes['match_stats'] = $this->normalizeStats($data['stats']);
+        }
+
+        $venueName = $this->nullableString(data_get($data, 'venue.name'), 160);
+        if ($venueName !== null) {
+            $attributes['venue_name'] = $venueName;
+        }
+
+        $refereeName = $this->nullableString($data['referee'] ?? null, 120);
+        if ($refereeName !== null) {
+            $attributes['referee_name'] = $refereeName;
+        }
+
+        if (is_array($data['tv_channels'] ?? null)) {
+            $attributes['tv_channels'] = array_values(array_filter(array_map(
+                fn (mixed $channel): ?string => $this->nullableString($channel, 80),
+                array_slice($data['tv_channels'], 0, 12),
+            )));
+        }
 
         $match->update($attributes);
+    }
+
+    public function syncLineups(FootballMatch $match): bool
+    {
+        if ($match->provider !== LiveFootballApiService::PROVIDER || $match->isFinished()) {
+            return false;
+        }
+
+        $data = $this->api->lineups($match->provider_match_id);
+        $lineups = $this->normalizeLineups($data);
+        $hasStartingPlayers = ($lineups['home']['starting'] ?? []) !== []
+            || ($lineups['away']['starting'] ?? []) !== [];
+
+        $attributes = [
+            'lineup_synced_at' => CarbonImmutable::now('UTC'),
+            'lineup_is_projected' => filter_var($data['is_projected'] ?? false, FILTER_VALIDATE_BOOLEAN),
+        ];
+
+        if ($hasStartingPlayers) {
+            $attributes['lineups'] = $lineups;
+        }
+
+        $match->update($attributes);
+
+        return $hasStartingPlayers;
     }
 
     private function candidateQuery(CarbonImmutable $now): Builder
@@ -125,6 +199,25 @@ class FootballLiveSynchronizer
                 ->where('football_matches.is_live', true)
                 ->orWhereNotIn('football_matches.status', FootballMatch::TERMINAL_STATUSES))
             ->where('football_matches.provider', LiveFootballApiService::PROVIDER)
+            ->whereHas('competition', fn (Builder $query): Builder => $query->active()
+                ->where('provider', LiveFootballApiService::PROVIDER));
+    }
+
+    private function lineupCandidateQuery(CarbonImmutable $now): Builder
+    {
+        return FootballMatch::query()
+            ->whereBetween('football_matches.kickoff_at', [
+                $now->subMinutes(self::LINEUP_AFTER_KICKOFF_MINUTES)->format('Y-m-d H:i:s'),
+                $now->addMinutes(self::LINEUP_WINDOW_MINUTES)->format('Y-m-d H:i:s'),
+            ])
+            ->where('football_matches.provider', LiveFootballApiService::PROVIDER)
+            ->whereNotIn('football_matches.status', FootballMatch::TERMINAL_STATUSES)
+            ->where(fn (Builder $query): Builder => $query
+                ->whereNull('football_matches.lineups')
+                ->orWhere('football_matches.lineup_is_projected', true))
+            ->where(fn (Builder $query): Builder => $query
+                ->whereNull('football_matches.lineup_synced_at')
+                ->orWhere('football_matches.lineup_synced_at', '<=', $now->subMinutes(self::LINEUP_RETRY_MINUTES)->format('Y-m-d H:i:s')))
             ->whereHas('competition', fn (Builder $query): Builder => $query->active()
                 ->where('provider', LiveFootballApiService::PROVIDER));
     }
@@ -167,8 +260,117 @@ class FootballLiveSynchronizer
                 'label' => $types[$providerType],
                 'side' => $side,
                 'player_name' => $playerName,
+                'player_in' => $in ?? null,
+                'player_out' => $out ?? null,
                 'score' => $score,
             ], fn (mixed $value): bool => $value !== null);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeLineups(array $data): array
+    {
+        $lineups = [];
+
+        foreach (['home', 'away'] as $side) {
+            $team = is_array($data[$side] ?? null) ? $data[$side] : [];
+            $lineups[$side] = [
+                'starting' => $this->normalizePlayers($team['starting'] ?? []),
+                'subs' => $this->normalizePlayers($team['subs'] ?? []),
+            ];
+
+            $coach = $this->normalizePerson($team['coach'] ?? null);
+            if ($coach !== null) {
+                $lineups[$side]['coach'] = $coach;
+            }
+        }
+
+        $formation = is_array($data['formation'] ?? null) ? array_filter([
+            'home' => $this->nullableString($data['formation']['home'] ?? null, 20),
+            'away' => $this->nullableString($data['formation']['away'] ?? null, 20),
+        ]) : [];
+        if ($formation !== []) {
+            $lineups['formation'] = $formation;
+        }
+        $lineups['is_projected'] = filter_var($data['is_projected'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        return $lineups;
+    }
+
+    private function normalizePlayers(mixed $players): array
+    {
+        if (! is_array($players)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach (array_slice($players, 0, 30) as $player) {
+            $person = $this->normalizePerson($player);
+            if ($person === null) {
+                continue;
+            }
+
+            $person['number'] = $this->nullableString($player['number'] ?? null, 4);
+            $person['position'] = $this->nullableString($player['position'] ?? null, 60);
+            $normalized[] = array_filter($person, fn (mixed $value): bool => $value !== null);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizePerson(mixed $person): ?array
+    {
+        if (! is_array($person)) {
+            return null;
+        }
+
+        $name = $this->nullableString($person['name'] ?? null, 120);
+        if ($name === null) {
+            return null;
+        }
+
+        $image = $this->nullableString($person['image'] ?? null, 500);
+        if ($image !== null && (! filter_var($image, FILTER_VALIDATE_URL) || ! str_starts_with($image, 'https://'))) {
+            $image = null;
+        }
+
+        return array_filter([
+            'id' => $this->nullableString($person['id'] ?? null, 120),
+            'name' => $name,
+            'image' => $image,
+        ], fn (mixed $value): bool => $value !== null);
+    }
+
+    private function normalizeStats(array $stats): array
+    {
+        $labels = [
+            'possession' => 'Topa Sahip Olma',
+            'shots' => 'Şut',
+            'shots on target' => 'İsabetli Şut',
+            'corners' => 'Korner',
+            'fouls' => 'Faul',
+            'offsides' => 'Ofsayt',
+        ];
+        $normalized = [];
+
+        foreach (array_slice($stats, 0, 24) as $stat) {
+            if (! is_array($stat)) {
+                continue;
+            }
+
+            $providerLabel = $this->nullableString($stat['label'] ?? null, 60);
+            $home = $this->nullableString($stat['home'] ?? null, 24);
+            $away = $this->nullableString($stat['away'] ?? null, 24);
+            if ($providerLabel === null || ($home === null && $away === null)) {
+                continue;
+            }
+
+            $normalized[] = [
+                'label' => $labels[strtolower($providerLabel)] ?? $providerLabel,
+                'home' => $home,
+                'away' => $away,
+            ];
         }
 
         return $normalized;

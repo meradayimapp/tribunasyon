@@ -39,6 +39,13 @@ class FootballMatch extends Model
         'live_minute',
         'live_events',
         'live_details_synced_at',
+        'lineups',
+        'lineup_is_projected',
+        'lineup_synced_at',
+        'match_stats',
+        'venue_name',
+        'referee_name',
+        'tv_channels',
         'meta',
     ];
 
@@ -58,6 +65,11 @@ class FootballMatch extends Model
             'live_minute' => 'integer',
             'live_events' => 'array',
             'live_details_synced_at' => UtcDateTime::class,
+            'lineups' => 'array',
+            'lineup_is_projected' => 'boolean',
+            'lineup_synced_at' => UtcDateTime::class,
+            'match_stats' => 'array',
+            'tv_channels' => 'array',
             'meta' => 'array',
         ];
     }
@@ -106,6 +118,7 @@ class FootballMatch extends Model
             'score' => ['home' => $this->home_score, 'away' => $this->away_score],
             'minute' => $this->live_minute,
             'status_display' => $this->stateStatusLabel(),
+            'events' => $this->live_events ?? [],
             'updated_at' => ($this->live_details_synced_at ?? $this->last_synced_at)?->toIso8601String(),
         ];
     }

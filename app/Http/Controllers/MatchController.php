@@ -34,7 +34,7 @@ class MatchController extends Controller
             ->select([
                 'id', 'status', 'state', 'status_display', 'is_live',
                 'home_score', 'away_score', 'live_minute', 'last_synced_at',
-                'live_details_synced_at',
+                'live_events', 'live_details_synced_at',
             ])
             ->findOrFail($footballMatch->id);
 

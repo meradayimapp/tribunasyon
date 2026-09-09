@@ -97,6 +97,31 @@ class LiveFootballApiServiceTest extends TestCase
         });
     }
 
+    public function test_it_requests_and_validates_lineups_by_provider_match_id(): void
+    {
+        Http::fake([
+            'football.test/api/v1/lineups*' => Http::response([
+                'success' => true,
+                'data' => [
+                    'match_id' => 'match-1',
+                    'home' => ['starting' => []],
+                    'away' => ['starting' => []],
+                ],
+            ]),
+        ]);
+
+        $data = app(LiveFootballApiService::class)->lineups('match-1');
+
+        $this->assertSame('match-1', $data['match_id']);
+        Http::assertSent(function (Request $request): bool {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+            return str_contains($request->url(), '/lineups')
+                && ($query['match_id'] ?? null) === 'match-1'
+                && ($query['api_key'] ?? null) === 'test-secret-key';
+        });
+    }
+
     public function test_error_messages_do_not_expose_the_api_key(): void
     {
         Http::fake(['*' => Http::response(['success' => false], 401)]);

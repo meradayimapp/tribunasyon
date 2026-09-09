@@ -44,10 +44,11 @@ class FootballLiveSyncTest extends TestCase
         Http::fake([
             'football.test/api/v1/matches*' => Http::response($this->matchesResponse()),
             'football.test/api/v1/live_match_details*' => Http::response($this->detailsResponse()),
+            'football.test/api/v1/lineups*' => Http::response($this->lineupsResponse()),
         ]);
 
         $this->artisan('football:sync-live')
-            ->expectsOutput('1 aday değerlendirildi; 1 canlı detay güncellendi.')
+            ->expectsOutput('1 aday değerlendirildi; 1 canlı detay, 1 ilk 11 güncellendi.')
             ->assertExitCode(0);
 
         $match->refresh();
@@ -56,13 +57,19 @@ class FootballLiveSyncTest extends TestCase
         $this->assertSame(1, $match->home_score);
         $this->assertSame('Gol', $match->live_events[0]['label']);
         $this->assertSame('Oyuncu', $match->live_events[0]['player_name']);
+        $this->assertSame('Topa Sahip Olma', $match->match_stats[0]['label']);
+        $this->assertSame('Test Arena', $match->venue_name);
+        $this->assertSame('Test Hakemi', $match->referee_name);
+        $this->assertSame(['TRT Spor'], $match->tv_channels);
+        $this->assertSame('Kaleci', $match->lineups['home']['starting'][0]['position']);
+        $this->assertFalse($match->lineup_is_projected);
         $this->assertSame('Uzak', $farMatch->fresh()->status_display);
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
         Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/live_match_details')
             && $request['match_id'] === 'live-match');
 
         $this->artisan('football:sync-live')->assertExitCode(0);
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
         $this->assertDatabaseCount('football_matches', 2);
     }
 
@@ -90,7 +97,7 @@ class FootballLiveSyncTest extends TestCase
         Http::fake();
 
         $this->artisan('football:sync-live')
-            ->expectsOutput('0 aday değerlendirildi; 0 canlı detay güncellendi.')
+            ->expectsOutput('0 aday değerlendirildi; 0 canlı detay, 0 ilk 11 güncellendi.')
             ->assertExitCode(0);
         Http::assertNothingSent();
     }
@@ -146,8 +153,31 @@ class FootballLiveSyncTest extends TestCase
             ],
             'events' => [
                 ['time' => '36', 'type' => 'Goal', 'side' => 'home', 'detail' => ['player' => ['id' => 'p1', 'name' => '<b>Oyuncu</b>'], 'score' => '1-0']],
+                ['time' => '55', 'type' => 'Substitution', 'side' => 'away', 'detail' => ['player_in' => ['name' => 'Giren'], 'player_out' => ['name' => 'Çıkan']]],
                 ['time' => 'x', 'type' => 'Unknown', 'detail' => ['raw' => '<script>alert(1)</script>']],
             ],
+            'stats' => [['label' => 'Possession', 'home' => '46%', 'away' => '54%']],
+            'venue' => ['name' => 'Test Arena', 'capacity' => 50000],
+            'referee' => 'Test Hakemi',
+            'tv_channels' => ['TRT Spor'],
+        ]];
+    }
+
+    private function lineupsResponse(): array
+    {
+        return ['success' => true, 'data' => [
+            'match_id' => 'live-match',
+            'home' => [
+                'starting' => [['id' => 'home-player', 'name' => 'Ev Kalecisi', 'number' => 1, 'position' => 'Kaleci']],
+                'subs' => [],
+                'coach' => ['id' => 'home-coach', 'name' => 'Ev Teknik Direktörü'],
+            ],
+            'away' => [
+                'starting' => [['id' => 'away-player', 'name' => 'Deplasman Oyuncusu', 'number' => 9, 'position' => 'Forvet']],
+                'subs' => [],
+            ],
+            'formation' => ['home' => '4-3-3', 'away' => '4-2-3-1'],
+            'is_projected' => false,
         ]];
     }
 }
