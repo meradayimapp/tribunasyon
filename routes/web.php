@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', FeedController::class)->name('home');
 Route::get('/takimlar', [TeamController::class, 'index'])->name('teams.index');
 Route::get('/takim/{team}', [TeamController::class, 'show'])->name('teams.show');
+Route::get('/takim/{team}/fikstur', [TeamController::class, 'fixtures'])->name('teams.fixtures');
+Route::get('/takim/{team}/oyuncular', [TeamController::class, 'players'])->name('teams.players');
 Route::get('/takim/{team}/gonderi/{post}', [PostController::class, 'show'])->scopeBindings()->name('posts.show');
 Route::get('/maclar', [MatchController::class, 'index'])->name('matches.index');
 Route::get('/maclar/{footballMatch}', [MatchController::class, 'show'])->whereNumber('footballMatch')->name('matches.show');
