@@ -6,7 +6,6 @@ use App\Exceptions\LiveFootballApiException;
 use App\Models\FootballCompetition;
 use App\Models\FootballMatch;
 use App\Models\FootballTeam;
-use App\Models\Team;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -14,14 +13,10 @@ use UnexpectedValueException;
 
 class FootballDataSynchronizer
 {
-    private const COMMUNITY_TEAM_SLUGS = [
-        '8lroq0cbhdxj8124qtxwrhvmm' => 'fenerbahce',
-        'esa748l653sss1wurz5ps3228' => 'galatasaray',
-        '2ez9cvam9lp9jyhng3eh3znb4' => 'besiktas',
-        '2yab38jdfl0gk2tei1mq40o06' => 'trabzonspor',
-    ];
-
-    public function __construct(private readonly LiveFootballApiService $api) {}
+    public function __construct(
+        private readonly LiveFootballApiService $api,
+        private readonly FootballTeamSocialMapper $socialTeamMapper,
+    ) {}
 
     public function syncCompetition(FootballCompetition $competition): int
     {
@@ -290,10 +285,7 @@ class FootballDataSynchronizer
 
     private function communityTeamId(string $providerTeamId): ?int
     {
-        $normalizedId = str_starts_with($providerTeamId, 'lfa-') ? substr($providerTeamId, 4) : $providerTeamId;
-        $slug = self::COMMUNITY_TEAM_SLUGS[$normalizedId] ?? null;
-
-        return $slug ? Team::query()->where('slug', $slug)->value('id') : null;
+        return $this->socialTeamMapper->socialTeamId($providerTeamId);
     }
 
     private function ensureSupportedProvider(FootballCompetition $competition): void

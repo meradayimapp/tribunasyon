@@ -19,7 +19,13 @@ class TeamController extends Controller
 {
     public function index(): View
     {
-        return view('admin.teams.index', ['teams' => Team::withTrashed()->withCount(['followers', 'posts', 'moderators'])->ordered()->get()]);
+        return view('admin.teams.index', [
+            'teams' => Team::withTrashed()
+                ->with('footballTeams:id,provider,provider_team_id,team_id')
+                ->withCount(['followers', 'posts', 'moderators'])
+                ->ordered()
+                ->get(),
+        ]);
     }
 
     public function create(): View
