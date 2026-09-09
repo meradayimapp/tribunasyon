@@ -27,20 +27,25 @@
     @endphp
     <article class="compact-match-card">
         <a href="{{ route('matches.show', $match) }}" aria-label="{{ $match->homeTeam->resolved_name }} - {{ $match->awayTeam->resolved_name }} maçını aç">
-            <time class="compact-match-date" datetime="{{ $match->kickoffInDisplayTimezone()->toIso8601String() }}">{{ $match->kickoffInDisplayTimezone()->locale('tr')->translatedFormat('d M') }}</time>
-            <span class="compact-match-team">
-                @if($logo = $match->homeTeam->logoUrl())<img src="{{ $logo }}" alt="" loading="lazy" decoding="async">@endif
-                <strong @class(['winner' => $homeWinner])>{{ $match->homeTeam->resolved_name }}</strong>
+            <time class="compact-match-date" datetime="{{ $match->kickoffInDisplayTimezone()->toIso8601String() }}">
+                <strong>{{ $match->kickoffInDisplayTimezone()->format('d') }}</strong>
+                <small>{{ $match->kickoffInDisplayTimezone()->locale('tr')->translatedFormat('M') }}</small>
+            </time>
+            <span class="compact-match-clubs">
+                <span class="compact-match-club">
+                    @if($logo = $match->homeTeam->logoUrl())<img src="{{ $logo }}" alt="" loading="lazy" decoding="async">@else<span class="compact-match-club-fallback" aria-hidden="true">{{ mb_strtoupper(mb_substr($match->homeTeam->resolved_name, 0, 1)) }}</span>@endif
+                    <strong @class(['winner' => $homeWinner])>{{ $match->homeTeam->resolved_name }}</strong>
+                </span>
+                <span class="compact-match-club">
+                    @if($logo = $match->awayTeam->logoUrl())<img src="{{ $logo }}" alt="" loading="lazy" decoding="async">@else<span class="compact-match-club-fallback" aria-hidden="true">{{ mb_strtoupper(mb_substr($match->awayTeam->resolved_name, 0, 1)) }}</span>@endif
+                    <strong @class(['winner' => $awayWinner])>{{ $match->awayTeam->resolved_name }}</strong>
+                </span>
+                <small class="compact-match-meta">{{ $match->competition->display_name ?: $match->competition->name }}</small>
             </span>
             <span class="compact-match-score">
                 @if($match->home_score === null && $match->away_score === null)<strong>{{ $match->kickoffTime() }}</strong>@else<strong>{{ $match->home_score ?? '–' }} - {{ $match->away_score ?? '–' }}</strong>@endif
                 <small>{{ strtolower($match->status) === 'finished' ? 'MS' : $match->statusLabel() }}</small>
             </span>
-            <span class="compact-match-team compact-match-team-away">
-                <strong @class(['winner' => $awayWinner])>{{ $match->awayTeam->resolved_name }}</strong>
-                @if($logo = $match->awayTeam->logoUrl())<img src="{{ $logo }}" alt="" loading="lazy" decoding="async">@endif
-            </span>
-            <span class="compact-match-meta">{{ $match->competition->display_name ?: $match->competition->name }}</span>
             <x-ui.icon name="chevron-right" />
         </a>
     </article>

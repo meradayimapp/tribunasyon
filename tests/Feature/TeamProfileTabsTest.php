@@ -169,6 +169,9 @@ class TeamProfileTabsTest extends TestCase
             ->assertOk()
             ->assertSee('22:00')
             ->assertDontSee('19:00')
+            ->assertSee('featured-match-card', false)
+            ->assertSee('compact-match-clubs', false)
+            ->assertSee('compact-match-score', false)
             ->assertSee(route('matches.show', $match), false);
     }
 
