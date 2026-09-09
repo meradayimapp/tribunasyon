@@ -77,6 +77,26 @@ class LiveFootballApiServiceTest extends TestCase
         app(LiveFootballApiService::class)->leagueFixtures('league-1');
     }
 
+    public function test_it_requests_and_validates_live_match_details_by_provider_id(): void
+    {
+        Http::fake([
+            'football.test/api/v1/live_match_details*' => Http::response([
+                'success' => true,
+                'data' => ['match_id' => 'match-1', 'header' => ['status' => ['is_live' => true]]],
+            ]),
+        ]);
+
+        $data = app(LiveFootballApiService::class)->liveMatchDetails('match-1');
+
+        $this->assertSame('match-1', $data['match_id']);
+        Http::assertSent(function (Request $request): bool {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+            return ($query['match_id'] ?? null) === 'match-1'
+                && ($query['api_key'] ?? null) === 'test-secret-key';
+        });
+    }
+
     public function test_error_messages_do_not_expose_the_api_key(): void
     {
         Http::fake(['*' => Http::response(['success' => false], 401)]);

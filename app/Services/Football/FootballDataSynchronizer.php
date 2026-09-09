@@ -120,6 +120,7 @@ class FootballDataSynchronizer
         $homeTeam = $this->syncTeam($home, $syncedAt);
         $awayTeam = $this->syncTeam($away, $syncedAt);
         $status = is_array($match['status'] ?? null) ? $match['status'] : [];
+        $isLive = $this->boolean($status['is_live'] ?? false);
 
         $attributes = [
             'competition_id' => $competition->id,
@@ -129,10 +130,17 @@ class FootballDataSynchronizer
             'status' => $this->nullableString($status['status'] ?? null) ?? 'unknown',
             'state' => $this->nullableString($status['state'] ?? null),
             'status_display' => $this->nullableString($status['display'] ?? null),
-            'is_live' => $this->boolean($status['is_live'] ?? false),
+            'is_live' => $isLive,
             'last_synced_at' => $syncedAt,
             'meta' => $match,
         ];
+
+        $minute = $this->minute($status['minute'] ?? null, $status['display'] ?? null);
+        if ($isLive || $minute !== null) {
+            $attributes['live_minute'] = $minute;
+        } elseif (in_array($attributes['status'], FootballMatch::TERMINAL_STATUSES, true)) {
+            $attributes['live_minute'] = null;
+        }
 
         if ($season !== null) {
             $attributes['season'] = $season;
@@ -257,6 +265,19 @@ class FootballDataSynchronizer
 
         if (is_string($score) && preg_match('/^\d+$/', trim($score))) {
             return (int) trim($score);
+        }
+
+        return null;
+    }
+
+    private function minute(mixed $minute, mixed $display): ?int
+    {
+        if ((is_int($minute) || (is_string($minute) && preg_match('/^\d{1,3}$/', trim($minute)))) && (int) $minute >= 0 && (int) $minute <= 150) {
+            return (int) $minute;
+        }
+
+        if (is_string($display) && preg_match('/^(\d{1,3})[\'′]?$/u', trim($display), $matches) && (int) $matches[1] <= 150) {
+            return (int) $matches[1];
         }
 
         return null;

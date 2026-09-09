@@ -20,8 +20,8 @@ class DatabaseFootballDataService implements FootballDataService
             ->whereHas('competition', fn ($query) => $query->active())
             ->with([
                 'competition:id,name,display_name,sort_order',
-                'homeTeam.team:id,name,logo,primary_color',
-                'awayTeam.team:id,name,logo,primary_color',
+                'homeTeam.team:id,name,slug,logo,primary_color',
+                'awayTeam.team:id,name,slug,logo,primary_color',
             ])
             ->join('football_competitions', 'football_competitions.id', '=', 'football_matches.competition_id')
             ->orderBy('football_competitions.sort_order')

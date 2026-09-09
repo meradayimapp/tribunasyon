@@ -54,4 +54,11 @@ class FootballTeam extends Model
     {
         return $this->team?->logoUrl() ?: $this->provider_logo_url;
     }
+
+    public function publicUrl(): string
+    {
+        return $this->team_id !== null && $this->relationLoaded('team') && $this->team !== null
+            ? route('teams.show', $this->team)
+            : route('football-teams.show', $this);
+    }
 }

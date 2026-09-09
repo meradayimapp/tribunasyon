@@ -209,3 +209,64 @@ window.playerChatScroll = () => ({
         if (log) log.scrollTo({ top: 0, behavior: 'smooth' });
     },
 });
+
+window.matchLiveState = (url, initial) => ({
+    url,
+    timer: null,
+    isLive: Boolean(initial.is_live),
+    isFinished: Boolean(initial.is_finished),
+    homeScore: initial.score?.home ?? null,
+    awayScore: initial.score?.away ?? null,
+    minute: initial.minute ?? null,
+    statusDisplay: initial.status_display,
+
+    get scoreKnown() {
+        return this.homeScore !== null || this.awayScore !== null;
+    },
+
+    init() {
+        if (this.isLive && !document.hidden) this.start();
+    },
+
+    destroy() {
+        this.stop();
+    },
+
+    visibilityChanged() {
+        if (document.hidden) {
+            this.stop();
+        } else if (this.isLive && !this.isFinished) {
+            this.refresh();
+            this.start();
+        }
+    },
+
+    start() {
+        if (this.timer || !this.isLive || this.isFinished || document.hidden) return;
+        this.timer = window.setInterval(() => this.refresh(), 25000);
+    },
+
+    stop() {
+        if (this.timer) window.clearInterval(this.timer);
+        this.timer = null;
+    },
+
+    async refresh() {
+        if (document.hidden || !this.isLive || this.isFinished) return;
+
+        try {
+            const response = await fetch(this.url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+            if (!response.ok) return;
+            const state = await response.json();
+            this.isLive = Boolean(state.is_live);
+            this.isFinished = Boolean(state.is_finished);
+            this.homeScore = state.score?.home ?? null;
+            this.awayScore = state.score?.away ?? null;
+            this.minute = state.minute ?? null;
+            this.statusDisplay = state.status_display;
+            if (!this.isLive || this.isFinished) this.stop();
+        } catch (error) {
+            // Keep the last database-backed state visible during transient failures.
+        }
+    },
+});

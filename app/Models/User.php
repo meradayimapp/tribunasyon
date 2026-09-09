@@ -67,6 +67,11 @@ class User extends Authenticatable
         return $this->hasMany(PlayerChatMessage::class);
     }
 
+    public function footballMatchChatMessages(): HasMany
+    {
+        return $this->hasMany(FootballMatchChatMessage::class);
+    }
+
     public function likes(): HasMany
     {
         return $this->hasMany(Like::class);

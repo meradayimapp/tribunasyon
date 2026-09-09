@@ -67,7 +67,8 @@ class MatchesPageTest extends TestCase
                 'away_score' => 1,
             ]);
 
-            $this->get('/maclar')
+            $match = FootballMatch::query()->firstOrFail();
+            $response = $this->get('/maclar')
                 ->assertOk()
                 ->assertSee('Fenerbahçe Topluluğu')
                 ->assertDontSee('Display Fenerbahçe')
@@ -75,7 +76,13 @@ class MatchesPageTest extends TestCase
                 ->assertSee('Süper Lig')
                 ->assertSee('20:00')
                 ->assertSee('2 – 1')
-                ->assertSee("73'");
+                ->assertSee("73'")
+                ->assertSee(route('matches.show', $match), false)
+                ->assertSee(route('teams.show', $communityTeam), false)
+                ->assertSee(route('football-teams.show', $away), false)
+                ->assertDontSee('17:00');
+
+            $this->assertSame(1, substr_count($response->getContent(), '20:00'));
         } finally {
             Carbon::setTestNow();
         }
@@ -88,5 +95,42 @@ class MatchesPageTest extends TestCase
 
         $this->assertSame('Display', $display->resolved_name);
         $this->assertSame('Provider', $provider->resolved_name);
+    }
+
+    public function test_scheduled_provider_utc_status_time_is_not_rendered_as_a_second_kickoff(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-08 12:00:00', 'Europe/Istanbul'));
+
+        try {
+            $competition = FootballCompetition::create([
+                'provider' => 'live-football-api', 'provider_league_id' => 'league-time',
+                'name' => 'Lig', 'slug' => 'lig-time', 'is_active' => true,
+            ]);
+            $home = FootballTeam::create([
+                'provider' => 'live-football-api', 'provider_team_id' => 'time-home',
+                'provider_name' => 'Ev', 'is_active' => true,
+            ]);
+            $away = FootballTeam::create([
+                'provider' => 'live-football-api', 'provider_team_id' => 'time-away',
+                'provider_name' => 'Deplasman', 'is_active' => true,
+            ]);
+            FootballMatch::create([
+                'competition_id' => $competition->id,
+                'home_football_team_id' => $home->id,
+                'away_football_team_id' => $away->id,
+                'provider' => 'live-football-api', 'provider_match_id' => 'time-match',
+                'kickoff_at' => '2026-09-08 19:00:00',
+                'status' => 'scheduled', 'status_display' => '19:00', 'is_live' => false,
+            ]);
+
+            $response = $this->get(route('matches.index'))
+                ->assertOk()
+                ->assertSee('22:00')
+                ->assertSee('Başlamadı')
+                ->assertDontSee('19:00');
+            $this->assertSame(1, substr_count($response->getContent(), '22:00'));
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 }

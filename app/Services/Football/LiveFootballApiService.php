@@ -60,6 +60,23 @@ class LiveFootballApiService
         return $data;
     }
 
+    public function liveMatchDetails(string $matchId): array
+    {
+        $matchId = trim($matchId);
+
+        if ($matchId === '') {
+            throw new LiveFootballApiException('Canlı maç kimliği boş olamaz.');
+        }
+
+        $data = $this->get('live_match_details', ['match_id' => $matchId]);
+
+        if ((string) ($data['match_id'] ?? '') !== $matchId || ! is_array($data['header'] ?? null)) {
+            throw new LiveFootballApiException('Canlı maç yanıtı beklenen veri yapısında değil.');
+        }
+
+        return $data;
+    }
+
     private function get(string $endpoint, array $query): array
     {
         $key = trim((string) config('services.live_football_api.key'));

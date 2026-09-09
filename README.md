@@ -15,7 +15,7 @@ Tribün, futbol takımlarının kendi topluluk sayfalarında sosyal medya akış
 - SQLite (yerel) / MySQL uyumlu migration'lar
 - Laravel Storage `public` diski
 
-Redis, Laravel Reverb ve gerçek futbol veri sağlayıcısı bu fazda kurulu değildir.
+Redis ve Laravel Reverb kullanılmaz. Maç merkezi, Live Football API'den merkezi komutlarla senkronize edilen veritabanı kayıtlarını kullanır.
 
 ## Yerel kurulum
 
@@ -97,7 +97,8 @@ Production ortamında `DatabaseSeeder` yalnızca takımları oluşturur; varsay�
 - Takım bazlı policy korumalı moderatör gönderi ve yorum yönetimi
 - Takım, kullanıcı, moderatör ataması, gönderi ve yorum yönetimli admin paneli
 - Public disk üzerinde doğrulanan görsel yüklemeleri
-- `FootballDataService` üzerinden çalışan mock maç ekranı
+- `FootballDataService` üzerinden DB-backed çalışan fikstür, maç detay ve canlı durum ekranları
+- Maç bazlı, Livewire polling kullanan canlı sohbet odaları
 - Mobil bottom navigation: Ana Sayfa, Takımlar, Maçlar, Profil
 
 ## Klasör yapısı
@@ -105,7 +106,7 @@ Production ortamında `DatabaseSeeder` yalnızca takımları oluşturur; varsay�
 - `app/Enums`: rol, durum ve gönderi tipleri
 - `app/Livewire`: feed ve sosyal etkileşim bileşenleri
 - `app/Policies`: takım bazlı backend yetkilendirmesi
-- `app/Services`: mock maç sağlayıcısı ve medya depolama servisi
+- `app/Services`: DB-backed futbol verisi, merkezi Live Football senkronizasyonu ve medya servisleri
 - `resources/views`: Blade kullanıcı, admin ve moderatör ekranları
 - `resources/scss`: Bootstrap değişkenleri ve özgün responsive tasarım
 - `database/migrations`: MySQL uyumlu şema
@@ -123,9 +124,19 @@ composer validate
 npm run build
 ```
 
+## Production scheduler
+
+Canlı maç senkronizasyonu ziyaretçi isteklerinden bağımsız olarak Laravel scheduler üzerinden çalışır. Hostinger Cron Jobs ekranında proje dizinini ve sunucudaki PHP binary yolunu kullanarak aşağıdaki komutu dakikada bir çalıştırın:
+
+```bash
+cd /home/USER/domains/DOMAIN/public_html && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Scheduler `football:sync-live` komutunu her dakika değerlendirir; komut yalnız aktif organizasyonlarda başlamak üzere olan veya canlı maç bulunduğunda API'ye gider. `football:sync-daily` günde bir, `football:sync-fixtures` haftada bir çalışır. Hostinger hesabındaki gerçek proje yolu veya PHP komutu farklıysa yalnız bu iki kısmı paneldeki değerlerle değiştirin.
+
 ## Sonraki faz
 
-Redis cache/queue, Laravel Reverb canlı maç odaları, API-Football entegrasyonu, gerçek canlı skorlar, bildirimler, algoritmik feed, video/anket/kadro/maç gönderi tipleri ve rozet/seviye/puan/tahmin sistemleri sonraki fazlara bırakılmıştır.
+Redis cache/queue, bildirimler, algoritmik feed, video/anket/kadro/maç gönderi tipleri ve rozet/seviye/puan/tahmin sistemleri sonraki fazlara bırakılmıştır.
 
 ## Demo görselleri
 
