@@ -24,8 +24,10 @@ const OPPONENTS = [
   {x:76.5, y:69.2}
 ];
 
-const KEEPER_POS = {x:92.2, y:66.5};
-const SHOT_TARGET = {x:88.2, y:61.2};
+const KEEPER_POS = {x:94.2, y:53.3};
+const SHOT_TARGET = {x:96.1, y:43.8};
+const BALL_OFFSET = {x:2.35, y:-1.15};
+const PITCH_RATIO = 1672 / 941;
 const runFrames = [...Array(6)].map((_,i)=>`assets/player/run_${String(i+1).padStart(2,'0')}.png`);
 const ballFrames = [...Array(6)].map((_,i)=>`assets/ball/ball_${String(i+1).padStart(2,'0')}.png`);
 [...runFrames, ...ballFrames].forEach(src=>{ const im = new Image(); im.src = src; });
@@ -43,6 +45,7 @@ const result = document.getElementById('result');
 const againBtn = document.getElementById('againBtn');
 
 const pitch = document.getElementById('pitch');
+const pitchWrap = document.querySelector('.pitch-wrap');
 const playersEl = document.getElementById('players');
 const opponentsEl = document.getElementById('opponents');
 const passPath = document.getElementById('passPath');
@@ -57,6 +60,7 @@ const goalNeed = document.getElementById('goalNeed');
 const statusToast = document.getElementById('statusToast');
 const goalFlash = document.getElementById('goalFlash');
 const keeper = document.getElementById('keeper');
+const activePointer = document.getElementById('activePointer');
 
 let audioCtx = null;
 let soundOn = true;
@@ -92,6 +96,7 @@ function showGame(){
   splash.classList.remove('active');
   game.classList.add('active');
   howModal.classList.remove('show');
+  syncPitchSize();
   startRound();
 }
 startBtn.onclick = showGame;
@@ -100,7 +105,64 @@ howBtn.onclick = ()=> howModal.classList.add('show');
 closeHow.onclick = ()=> howModal.classList.remove('show');
 againBtn.onclick = ()=> { result.classList.remove('show'); startRound(); };
 soundBtn.onclick = ()=>{ soundOn = !soundOn; soundBtn.textContent = soundOn ? '🔊' : '🔇'; };
-fullBtn.onclick = ()=>{ if(!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.(); };
+
+function getFullscreenElement(){
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function updateFullscreenButton(){
+  const expanded = Boolean(getFullscreenElement());
+  fullBtn.classList.toggle('is-fullscreen', expanded);
+  fullBtn.setAttribute('aria-pressed', String(expanded));
+  fullBtn.setAttribute('aria-label', expanded ? 'Tam ekrandan çık' : 'Tam ekrana geç');
+  fullBtn.title = expanded ? 'Tam ekrandan çık' : 'Tam ekrana geç';
+}
+
+async function toggleFullscreen(){
+  try{
+    if(!getFullscreenElement()){
+      const request = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+      if(!request) return;
+      await request.call(document.documentElement);
+      try{ await screen.orientation?.lock?.('landscape'); }catch(err){}
+    }else{
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      await exit?.call(document);
+      try{ screen.orientation?.unlock?.(); }catch(err){}
+    }
+  }catch(err){}
+  updateFullscreenButton();
+}
+
+fullBtn.onclick = toggleFullscreen;
+document.addEventListener('fullscreenchange', updateFullscreenButton);
+document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+updateFullscreenButton();
+
+function syncPitchSize(){
+  const availableWidth = pitchWrap.clientWidth;
+  const availableHeight = pitchWrap.clientHeight;
+  if(!availableWidth || !availableHeight) return;
+
+  let width = availableWidth;
+  let height = width / PITCH_RATIO;
+  if(height > availableHeight){
+    height = availableHeight;
+    width = height * PITCH_RATIO;
+  }
+
+  pitch.style.width = `${width}px`;
+  pitch.style.height = `${height}px`;
+}
+
+const pitchResizeObserver = new ResizeObserver(()=>{
+  syncPitchSize();
+  if(game.classList.contains('active') && !locked){
+    const current = ATTACKERS[activePlayer];
+    if(current) placeBallAt(current.x, current.y);
+  }
+});
+pitchResizeObserver.observe(pitchWrap);
 
 function renderProgress(){
   progressEl.innerHTML = '';
@@ -130,12 +192,8 @@ function createPlayers(){
 
     const ring = document.createElement('span');
     ring.className = 'base-ring';
-    const pointer = document.createElement('span');
-    pointer.className = 'pointer';
-
-    div.appendChild(img);
     div.appendChild(ring);
-    div.appendChild(pointer);
+    div.appendChild(img);
     playersEl.appendChild(div);
   });
   updatePlayerStates();
@@ -157,6 +215,7 @@ function createOpponents(){
 }
 
 function updateAnimatedFrames(){
+  if(document.hidden || !game.classList.contains('active')) return;
   playerFrame = (playerFrame + 1) % runFrames.length;
   ballFrame = (ballFrame + 1) % ballFrames.length;
   playersEl.querySelectorAll('img').forEach((img, idx)=> img.src = runFrames[(playerFrame + idx) % runFrames.length]);
@@ -171,18 +230,25 @@ function updatePlayerStates(){
     el.classList.toggle('done', idx < activePlayer);
   });
   const p = ATTACKERS[activePlayer];
+  activePointer.style.left = `${p.x}%`;
+  activePointer.style.top = `${p.y}%`;
   placeBallAt(p.x, p.y);
 }
 
 function placeBallAt(px, py){
-  ball.style.left = `${px + 2.7}%`;
-  ball.style.top = `${py - 1.6}%`;
-  ball.style.transform = 'translate(-50%,-50%)';
+  setBallTransform(px + BALL_OFFSET.x, py + BALL_OFFSET.y);
+}
+
+function setBallTransform(px, py, scale=1, rotation=0, width=pitch.clientWidth, height=pitch.clientHeight){
+  const x = width * px / 100;
+  const y = height * py / 100;
+  ball.style.transform = `translate3d(${x}px,${y}px,0) translate(-50%,-50%) scale(${scale}) rotate(${rotation}deg)`;
 }
 
 function setKeeper(){
   keeper.style.left = `${KEEPER_POS.x}%`;
   keeper.style.top = `${KEEPER_POS.y}%`;
+  keeper.style.transform = '';
 }
 
 function startRound(){
@@ -314,8 +380,8 @@ function percToViewBox({x, y}){
 function animatePass(fromIndex, toIndex, done){
   const start = ATTACKERS[fromIndex];
   const end = ATTACKERS[toIndex];
-  const startBall = {x: start.x + 2.7, y: start.y - 1.6};
-  const endBall = {x: end.x + 2.7, y: end.y - 1.6};
+  const startBall = {x: start.x + BALL_OFFSET.x, y: start.y + BALL_OFFSET.y};
+  const endBall = {x: end.x + BALL_OFFSET.x, y: end.y + BALL_OFFSET.y};
   const p1 = percToViewBox(startBall);
   const p2 = percToViewBox(endBall);
   const cx = (p1.x + p2.x) / 2;
@@ -328,14 +394,15 @@ function animatePass(fromIndex, toIndex, done){
 
   const startTime = performance.now();
   const duration = 720;
+  const pitchWidth = pitch.clientWidth;
+  const pitchHeight = pitch.clientHeight;
 
   function step(now){
     const t = Math.min(1, (now - startTime) / duration);
     const ease = 1 - Math.pow(1 - t, 3);
     const x = startBall.x + (endBall.x - startBall.x) * ease;
     const y = startBall.y + (endBall.y - startBall.y) * ease - Math.sin(Math.PI * ease) * 5.2;
-    ball.style.left = `${x}%`;
-    ball.style.top = `${y}%`;
+    setBallTransform(x, y, 1, 0, pitchWidth, pitchHeight);
     if(t < 1) requestAnimationFrame(step);
     else done?.();
   }
@@ -349,7 +416,7 @@ function shootGoal(){
   toast('ŞUT!');
 
   const start = ATTACKERS[activePlayer];
-  const startBall = {x: start.x + 2.7, y: start.y - 1.6};
+  const startBall = {x: start.x + BALL_OFFSET.x, y: start.y + BALL_OFFSET.y};
   const p1 = percToViewBox(startBall);
   const p2 = percToViewBox(SHOT_TARGET);
   const cx = p1.x + (p2.x - p1.x) * 0.62;
@@ -361,15 +428,15 @@ function shootGoal(){
 
   const startTime = performance.now();
   const duration = 860;
+  const pitchWidth = pitch.clientWidth;
+  const pitchHeight = pitch.clientHeight;
   function step(now){
     const t = Math.min(1, (now - startTime) / duration);
     const e = t * t * (3 - 2 * t);
     const x = startBall.x + (SHOT_TARGET.x - startBall.x) * e;
     const y = startBall.y + (SHOT_TARGET.y - startBall.y) * e - Math.sin(Math.PI * e) * 9;
-    ball.style.left = `${x}%`;
-    ball.style.top = `${y}%`;
-    ball.style.transform = `translate(-50%,-50%) scale(${1 - 0.22 * e}) rotate(${720 * e}deg)`;
-    keeper.style.transform = `translate(50%,-100%) scale(${1 + (e * 0.06)}) translateX(${-12 * e}px)`;
+    setBallTransform(x, y, 1 - 0.22 * e, 720 * e, pitchWidth, pitchHeight);
+    keeper.style.transform = `translate(-50%,-100%) translateX(${-12 * e}px) scale(${1 + (e * 0.06)})`;
 
     if(t < 1){
       requestAnimationFrame(step);

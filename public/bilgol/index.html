@@ -2,11 +2,21 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
   <title>BilGol — Bilginle pas yap, golünü at.</title>
+  <link rel="icon" href="assets/ball/ball_01.png" type="image/png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <button id="fullBtn" class="fullscreen-btn" type="button" aria-label="Tam ekrana geç" aria-pressed="false" title="Tam ekrana geç">
+    <svg class="fullscreen-enter" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
+    </svg>
+    <svg class="fullscreen-exit" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" />
+    </svg>
+  </button>
+
   <div id="rotateOverlay" class="rotate-overlay">
     <div class="rotate-card">
       <div class="phone">↻</div>
@@ -42,7 +52,6 @@
       <div class="hud-actions">
         <div class="score-pill">⚽ <b id="correctHud">0</b>/4</div>
         <button id="soundBtn" class="icon-btn" aria-label="Ses">🔊</button>
-        <button id="fullBtn" class="icon-btn" aria-label="Tam ekran">⛶</button>
       </div>
     </header>
 
@@ -57,6 +66,7 @@
           <div id="opponents" class="layer players-layer"></div>
           <img id="keeper" src="assets/keeper/keeper.png" alt="Kaleci">
           <img id="ball" class="ball" src="assets/ball/ball_01.png" alt="Top">
+          <span id="activePointer" class="active-pointer" aria-hidden="true"></span>
           <div id="goalFlash">GOOOL!</div>
           <div id="statusToast"></div>
         </div>
