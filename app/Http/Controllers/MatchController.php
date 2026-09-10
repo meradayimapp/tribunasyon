@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Contracts\FootballDataService;
 use App\Models\FootballMatch;
+use App\Services\SeoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -17,15 +18,15 @@ class MatchController extends Controller
         return view('matches.index', ['date' => $date, 'matches' => $service->matchesForDate($date)]);
     }
 
-    public function show(FootballMatch $footballMatch): View
+    public function show(FootballMatch $footballMatch, SeoService $seoService): View
     {
         $footballMatch->load([
-            'competition:id,name,display_name',
-            'homeTeam.team:id,name,slug,logo,primary_color',
-            'awayTeam.team:id,name,slug,logo,primary_color',
+            'competition:id,name,display_name,is_active',
+            'homeTeam.team:id,name,slug,logo,primary_color,status,deleted_at',
+            'awayTeam.team:id,name,slug,logo,primary_color,status,deleted_at',
         ]);
 
-        return view('matches.show', ['match' => $footballMatch]);
+        return view('matches.show', ['match' => $footballMatch, 'seo' => $seoService->match($footballMatch)]);
     }
 
     public function state(FootballMatch $footballMatch): JsonResponse

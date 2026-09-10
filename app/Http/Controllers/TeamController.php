@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FootballCompetition;
 use App\Models\FootballMatch;
 use App\Models\Team;
+use App\Services\SeoService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -17,14 +18,14 @@ class TeamController extends Controller
         return view('teams.index', ['teams' => Team::active()->ordered()->withCount(['followers', 'posts' => fn ($query) => $query->published()])->get()]);
     }
 
-    public function show(Team $team): View
+    public function show(Team $team, SeoService $seoService): View
     {
         $this->loadPublicProfile($team);
 
-        return view('teams.show', compact('team'));
+        return view('teams.show', ['team' => $team, 'seo' => $seoService->team($team)]);
     }
 
-    public function fixtures(Request $request, Team $team): View
+    public function fixtures(Request $request, Team $team, SeoService $seoService): View
     {
         $this->loadPublicProfile($team);
 
@@ -69,7 +70,7 @@ class TeamController extends Controller
             }
         }
 
-        return view('teams.fixtures', compact(
+        return view('teams.fixtures', array_merge(compact(
             'team',
             'hasFootballTeam',
             'competitions',
@@ -77,10 +78,10 @@ class TeamController extends Controller
             'view',
             'nextMatch',
             'matches',
-        ));
+        ), ['seo' => $seoService->team($team, 'fixtures')]));
     }
 
-    public function players(Request $request, Team $team): View
+    public function players(Request $request, Team $team, SeoService $seoService): View
     {
         $this->loadPublicProfile($team);
 
@@ -97,7 +98,12 @@ class TeamController extends Controller
                 ->values();
         }
 
-        return view('teams.players', compact('team', 'players', 'search'));
+        return view('teams.players', [
+            'team' => $team,
+            'players' => $players,
+            'search' => $search,
+            'seo' => $seoService->team($team, 'players'),
+        ]);
     }
 
     private function loadPublicProfile(Team $team): void

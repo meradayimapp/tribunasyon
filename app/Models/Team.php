@@ -74,6 +74,11 @@ class Team extends Model
             : Storage::disk('public')->url($this->logo);
     }
 
+    public function coverImageUrl(): ?string
+    {
+        return $this->cover_image ? Storage::disk('public')->url($this->cover_image) : null;
+    }
+
     public function getRouteKeyName(): string
     {
         return 'slug';

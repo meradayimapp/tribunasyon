@@ -17,7 +17,7 @@ class Post extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['team_id', 'created_by', 'type', 'body', 'image_path', 'status', 'published_at'];
+    protected $fillable = ['team_id', 'created_by', 'type', 'body', 'seo_title', 'seo_description', 'image_path', 'status', 'published_at'];
 
     protected $hidden = ['created_by'];
 
@@ -29,6 +29,20 @@ class Post extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', PostStatus::Published)->where('published_at', '<=', now());
+    }
+
+    public function scopeIndexable(Builder $query): Builder
+    {
+        return $query->published()->whereHas('team', fn (Builder $team): Builder => $team->active());
+    }
+
+    public function isIndexable(): bool
+    {
+        return ! $this->trashed()
+            && $this->status === PostStatus::Published
+            && $this->published_at?->lte(now())
+            && ! $this->team->trashed()
+            && $this->team->status->value === 'active';
     }
 
     public function team(): BelongsTo

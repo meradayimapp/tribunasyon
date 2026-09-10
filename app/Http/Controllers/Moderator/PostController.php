@@ -69,6 +69,8 @@ class PostController extends Controller
         $validator = validator($request->all(), [
             'team_id' => ['required', 'exists:teams,id'],
             'body' => ['required', 'string', 'max:5000'],
+            'seo_title' => ['nullable', 'string', 'max:70'],
+            'seo_description' => ['nullable', 'string', 'max:160'],
             'status' => ['required', Rule::enum(PostStatus::class)],
             'images' => ['nullable', 'array', 'max:10'],
             'images.*' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:8192'],
@@ -87,6 +89,8 @@ class PostController extends Controller
             }
         });
         $data = $validator->validate();
+        $data['seo_title'] = filled($data['seo_title'] ?? null) ? trim($data['seo_title']) : null;
+        $data['seo_description'] = filled($data['seo_description'] ?? null) ? trim($data['seo_description']) : null;
         $uploads = array_values($request->file('images', []));
 
         if ($request->hasFile('image')) {

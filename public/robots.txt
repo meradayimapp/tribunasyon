@@ -1,2 +1,13 @@
 User-agent: *
-Disallow:
+Disallow: /admin/
+Disallow: /moderator/
+Disallow: /profil-duzenle
+Disallow: /profil-sifre
+Disallow: /takimlarini-sec
+Disallow: /giris
+Disallow: /kayit
+Disallow: /sifremi-unuttum
+Disallow: /sifre-sifirla/
+Disallow: /ara
+
+Sitemap: https://tribunasyon.com/sitemap.xml

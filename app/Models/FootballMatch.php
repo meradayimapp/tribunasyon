@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UtcDateTime;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -92,6 +93,34 @@ class FootballMatch extends Model
     public function chatMessages(): HasMany
     {
         return $this->hasMany(FootballMatchChatMessage::class);
+    }
+
+    public function scopeIndexable(Builder $query): Builder
+    {
+        $activeFootballTeam = fn (Builder $team): Builder => $team
+            ->where('is_active', true)
+            ->where(fn (Builder $linked): Builder => $linked
+                ->whereNull('team_id')
+                ->orWhereHas('team', fn (Builder $social): Builder => $social->active()));
+
+        return $query
+            ->whereHas('competition', fn (Builder $competition): Builder => $competition->active())
+            ->whereHas('homeTeam', $activeFootballTeam)
+            ->whereHas('awayTeam', $activeFootballTeam);
+    }
+
+    public function isIndexable(): bool
+    {
+        $linkedTeamIsActive = static fn ($footballTeam): bool => $footballTeam->is_active
+            && ($footballTeam->team_id === null || (
+                $footballTeam->team !== null
+                && ! $footballTeam->team->trashed()
+                && $footballTeam->team->status->value === 'active'
+            ));
+
+        return $this->competition->is_active
+            && $linkedTeamIsActive($this->homeTeam)
+            && $linkedTeamIsActive($this->awayTeam);
     }
 
     public function kickoffInDisplayTimezone(): CarbonImmutable

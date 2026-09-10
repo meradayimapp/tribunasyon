@@ -15,10 +15,13 @@ use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SeoInfrastructureController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', FeedController::class)->name('home');
+Route::get('/sitemap.xml', [SeoInfrastructureController::class, 'sitemap'])->name('seo.sitemap');
+Route::get('/robots.txt', [SeoInfrastructureController::class, 'robots'])->name('seo.robots');
 Route::get('/takimlar', [TeamController::class, 'index'])->name('teams.index');
 Route::get('/takim/{team}', [TeamController::class, 'show'])->name('teams.show');
 Route::get('/takim/{team}/fikstur', [TeamController::class, 'fixtures'])->name('teams.fixtures');
@@ -67,7 +70,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::resource('organizations', Admin\OrganizationController::class)->except('show');
     Route::resource('users', Admin\UserController::class)->only(['index', 'edit', 'update']);
     Route::resource('moderators', Admin\ModeratorController::class)->only(['index', 'edit', 'update'])->parameters(['moderators' => 'user']);
-    Route::resource('posts', Admin\PostController::class)->only(['index', 'destroy']);
+    Route::resource('posts', Admin\PostController::class)->only(['index', 'edit', 'update', 'destroy']);
     Route::post('posts/{post}/restore', [Admin\PostController::class, 'restore'])->name('posts.restore');
     Route::resource('comments', Admin\CommentController::class)->only(['index', 'destroy']);
     Route::post('comments/{comment}/restore', [Admin\CommentController::class, 'restore'])->name('comments.restore');
