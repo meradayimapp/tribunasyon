@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>BilGol — Bilginle pas yap, golünü at.</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="rotateOverlay" class="rotate-overlay">
+    <div class="rotate-card">
+      <div class="phone">↻</div>
+      <h2>BilGol yatay oynanır</h2>
+      <p>Telefonunu yana çevir. Bu oyun yalnızca yatay görünüm için tasarlandı.</p>
+    </div>
+  </div>
+
+  <section id="splash" class="screen active">
+    <div class="splash-bg"></div>
+    <div class="splash-shade"></div>
+    <div class="splash-content">
+      <img src="assets/branding/bilgol-logo.png" class="intro-logo" alt="BilGol logosu">
+      <p class="intro-sub">Futbol bilgini kullan, organize pas yap, 6 soruda hücumu gole çevir.</p>
+      <button id="startBtn" class="start-btn">Oyuna Başla</button>
+      <button id="howBtn" class="ghost-btn">Nasıl oynanır?</button>
+      <div class="presented">TRİBÜNASYON İÇİN HAZIRLANDI</div>
+    </div>
+  </section>
+
+  <section id="game" class="screen">
+    <header class="hud">
+      <div class="brand">
+        <img src="assets/branding/bilgol-logo.png" alt="BilGol">
+      </div>
+      <div class="hud-center">
+        <div class="hud-topline">
+          <strong id="questionNo">SORU 1 / 6</strong>
+          <span id="goalNeed">4 doğru = GOL</span>
+        </div>
+        <div id="progress" class="progress"></div>
+      </div>
+      <div class="hud-actions">
+        <div class="score-pill">⚽ <b id="correctHud">0</b>/4</div>
+        <button id="soundBtn" class="icon-btn" aria-label="Ses">🔊</button>
+        <button id="fullBtn" class="icon-btn" aria-label="Tam ekran">⛶</button>
+      </div>
+    </header>
+
+    <main class="game-shell">
+      <section class="pitch-wrap">
+        <div id="pitch" class="pitch">
+          <img class="field-bg" src="assets/field/stadium-field-realistic.png" alt="Stadyum sahası">
+          <svg id="passSvg" viewBox="0 0 1000 560" preserveAspectRatio="none" aria-hidden="true">
+            <path id="passPath" d=""></path>
+          </svg>
+          <div id="players" class="layer players-layer"></div>
+          <div id="opponents" class="layer players-layer"></div>
+          <img id="keeper" src="assets/keeper/keeper.png" alt="Kaleci">
+          <img id="ball" class="ball" src="assets/ball/ball_01.png" alt="Top">
+          <div id="goalFlash">GOOOL!</div>
+          <div id="statusToast"></div>
+        </div>
+      </section>
+
+      <aside class="question-card">
+        <div class="q-top">
+          <div class="timer-ring"><span id="timer">10</span></div>
+          <div class="q-headings">
+            <div class="q-kicker">⚽ FUTBOL BİLGİSİ</div>
+            <h1 id="question">Soru yükleniyor...</h1>
+          </div>
+        </div>
+        <div id="answers" class="answers"></div>
+        <div class="q-foot">
+          <span>Doğru cevap = başarılı pas</span>
+          <span>6 soruda 4 doğru = gol</span>
+        </div>
+      </aside>
+    </main>
+  </section>
+
+  <div id="howModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <button id="closeHow" class="modal-close" aria-label="Kapat">×</button>
+      <h2>Nasıl oynanır?</h2>
+      <ol>
+        <li>Her soru için 10 saniyen var.</li>
+        <li>Doğru cevap verdiğinde top bir sonraki oyuncuya paslanır.</li>
+        <li>Top 4 başarılı pasla forvete ulaşır ve şut çekilir.</li>
+        <li>6 soruda en az 4 doğru yaparsan gol olur.</li>
+      </ol>
+      <button id="modalPlay" class="start-btn small">Oyuna Başla</button>
+    </div>
+  </div>
+
+  <div id="result" class="result-layer" aria-hidden="true">
+    <div class="result-card">
+      <div id="resultIcon" class="result-icon">⚽</div>
+      <h2 id="resultTitle">GOOOL!</h2>
+      <p id="resultText"></p>
+      <div class="result-stats">
+        <div><b id="resCorrect">0</b><span>Doğru</span></div>
+        <div><b id="resWrong">0</b><span>Kaçan</span></div>
+        <div><b id="resScore">0</b><span>Puan</span></div>
+      </div>
+      <button id="againBtn" class="start-btn small">Tekrar Oyna</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
