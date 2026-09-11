@@ -122,6 +122,51 @@ class LiveFootballApiServiceTest extends TestCase
         });
     }
 
+    public function test_it_requests_and_validates_team_squad_without_retrying(): void
+    {
+        Http::fake([
+            'football.test/api/v1/team_squad*' => Http::response([
+                'success' => true,
+                'data' => [
+                    'team_id' => 'team-1',
+                    'season' => '2026/2027',
+                    'squad' => [[
+                        'id' => 'player-1',
+                        'name' => 'API Oyuncusu',
+                        'number' => '9',
+                        'position' => 'Forward',
+                        'age' => '27',
+                        'country' => 'Türkiye',
+                    ]],
+                ],
+            ]),
+        ]);
+
+        $data = app(LiveFootballApiService::class)->teamSquad('team-1');
+
+        $this->assertSame('player-1', $data['squad'][0]['id']);
+        Http::assertSentCount(1);
+        Http::assertSent(function (Request $request): bool {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+            return str_contains($request->url(), '/team_squad')
+                && ($query['team_id'] ?? null) === 'team-1'
+                && ($query['api_key'] ?? null) === 'test-secret-key';
+        });
+    }
+
+    public function test_team_squad_failure_is_not_retried(): void
+    {
+        Http::fake(['football.test/api/v1/team_squad*' => Http::response([], 500)]);
+
+        try {
+            app(LiveFootballApiService::class)->teamSquad('team-1');
+            $this->fail('An exception should have been thrown.');
+        } catch (LiveFootballApiException) {
+            Http::assertSentCount(1);
+        }
+    }
+
     public function test_error_messages_do_not_expose_the_api_key(): void
     {
         Http::fake(['*' => Http::response(['success' => false], 401)]);

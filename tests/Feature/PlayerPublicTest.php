@@ -24,6 +24,7 @@ class PlayerPublicTest extends TestCase
             'current_team_id' => $team->id,
             'market_value_amount' => 42_500_000,
             'market_value_currency' => 'EUR',
+            'nationality' => 'Türkiye',
             'bio' => '<script>alert(1)</script>',
         ]);
 
@@ -31,6 +32,8 @@ class PlayerPublicTest extends TestCase
             ->assertOk()
             ->assertSee($player->name)
             ->assertSee($team->name)
+            ->assertSee('Ülke / uyruk')
+            ->assertSee('Türkiye')
             ->assertSee('€42.5M')
             ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false)
             ->assertDontSee('<script>alert(1)</script>', false);

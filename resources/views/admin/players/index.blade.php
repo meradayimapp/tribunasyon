@@ -3,7 +3,13 @@
 @section('mobile-title', 'Oyuncular')
 @section('content')
 <div class="panel-shell">
-    <div class="d-flex align-items-end justify-content-between gap-3 mb-4"><div><div class="eyebrow">Yönetim</div><h1 class="page-title mb-0">Oyuncular</h1></div><a class="btn btn-primary" href="{{ route('admin.players.create') }}">Oyuncu ekle</a></div>
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div><div class="eyebrow">Yönetim</div><h1 class="page-title mb-0">Oyuncular</h1></div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary" href="{{ route('admin.players.import.create') }}">API'den Kadro Aktar</a>
+            <a class="btn btn-primary" href="{{ route('admin.players.create') }}">Oyuncu ekle</a>
+        </div>
+    </div>
     <x-panel-nav />
     <form class="surface mb-3" method="GET">
         <div class="row g-2">

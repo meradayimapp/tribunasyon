@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\UtcDateTime;
 use App\Enums\PlayerStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,8 +19,9 @@ class Player extends Model
 
     protected $fillable = [
         'name', 'slug', 'photo_path', 'cover_image_path', 'position', 'shirt_number',
-        'current_team_id', 'national_team_name', 'national_team_code', 'birth_date',
+        'current_team_id', 'nationality', 'national_team_name', 'national_team_code', 'birth_date',
         'market_value_amount', 'market_value_currency', 'bio', 'status', 'sort_order',
+        'provider_player_id', 'provider_last_synced_at',
     ];
 
     protected function casts(): array
@@ -30,6 +32,7 @@ class Player extends Model
             'shirt_number' => 'integer',
             'sort_order' => 'integer',
             'status' => PlayerStatus::class,
+            'provider_last_synced_at' => UtcDateTime::class,
         ];
     }
 

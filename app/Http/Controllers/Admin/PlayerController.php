@@ -161,6 +161,7 @@ class PlayerController extends Controller
             'position' => ['nullable', 'string', 'max:80'],
             'shirt_number' => ['nullable', 'integer', 'min:0', 'max:99'],
             'current_team_id' => ['nullable', 'integer', Rule::in($teamIds->unique()->all())],
+            'nationality' => ['nullable', 'string', 'max:100'],
             'national_team_name' => ['nullable', 'string', 'max:100'],
             'national_team_code' => ['nullable', 'regex:/^[A-Z]{2}$/'],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],

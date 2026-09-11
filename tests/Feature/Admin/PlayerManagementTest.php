@@ -32,6 +32,7 @@ class PlayerManagementTest extends TestCase
             ->assertRedirect(route('admin.players.index'));
         $player = Player::firstOrFail();
         $this->assertSame('€75M', $player->formatted_market_value);
+        $this->assertSame('Türkiye', $player->nationality);
 
         $this->actingAs($admin)->put(route('admin.players.update', $player), [
             ...$this->payload(), 'name' => 'Güncel Oyuncu', 'status' => 'inactive',
@@ -99,6 +100,7 @@ class PlayerManagementTest extends TestCase
             'slug' => 'deneme-oyuncu',
             'position' => 'Forvet',
             'shirt_number' => 9,
+            'nationality' => 'Türkiye',
             'national_team_name' => 'Türkiye',
             'national_team_code' => 'tr',
             'birth_date' => '2000-01-01',

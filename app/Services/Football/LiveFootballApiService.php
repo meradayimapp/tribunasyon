@@ -96,7 +96,28 @@ class LiveFootballApiService
         return $data;
     }
 
-    private function get(string $endpoint, array $query): array
+    public function teamSquad(string $teamId): array
+    {
+        $teamId = trim($teamId);
+
+        if ($teamId === '') {
+            throw new LiveFootballApiException('Takım kimliği boş olamaz.');
+        }
+
+        $data = $this->get('team_squad', ['team_id' => $teamId], retry: false);
+
+        if ((string) ($data['team_id'] ?? '') !== $teamId || ! is_array($data['squad'] ?? null)) {
+            throw new LiveFootballApiException('Takım kadrosu yanıtı beklenen veri yapısında değil.');
+        }
+
+        if ($data['squad'] === []) {
+            throw new LiveFootballApiException('Bu takım için Football API kadrosu bulunamadı.');
+        }
+
+        return $data;
+    }
+
+    private function get(string $endpoint, array $query, bool $retry = true): array
     {
         $key = trim((string) config('services.live_football_api.key'));
         $baseUrl = rtrim((string) config('services.live_football_api.base_url'), '/');
@@ -110,13 +131,17 @@ class LiveFootballApiService
         }
 
         try {
-            $response = Http::baseUrl($baseUrl)
+            $request = Http::baseUrl($baseUrl)
                 ->acceptJson()
                 ->timeout(12)
-                ->connectTimeout(5)
-                ->retry(3, 300, fn (Throwable $exception): bool => $exception instanceof ConnectionException
-                    || ($exception instanceof RequestException && in_array($exception->response->status(), [500, 503], true)), throw: false)
-                ->get($endpoint, ['api_key' => $key, 'lang' => 'tr'] + $query);
+                ->connectTimeout(5);
+
+            if ($retry) {
+                $request = $request->retry(3, 300, fn (Throwable $exception): bool => $exception instanceof ConnectionException
+                    || ($exception instanceof RequestException && in_array($exception->response->status(), [500, 503], true)), throw: false);
+            }
+
+            $response = $request->get($endpoint, ['api_key' => $key, 'lang' => 'tr'] + $query);
         } catch (Throwable) {
             throw new LiveFootballApiException('Live Football API bağlantısı kurulamadı.');
         }

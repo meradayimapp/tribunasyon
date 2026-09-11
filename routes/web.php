@@ -65,6 +65,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::put('settings', [Admin\SiteSettingController::class, 'update'])->name('settings.update');
     Route::resource('teams', Admin\TeamController::class);
     Route::post('teams/{team}/restore', [Admin\TeamController::class, 'restore'])->name('teams.restore');
+    Route::get('players/import', [Admin\PlayerSquadImportController::class, 'create'])->name('players.import.create');
+    Route::post('players/import/preview', [Admin\PlayerSquadImportController::class, 'preview'])->name('players.import.preview');
+    Route::post('players/import/apply', [Admin\PlayerSquadImportController::class, 'apply'])->name('players.import.apply');
     Route::resource('players', Admin\PlayerController::class)->except('show');
     Route::post('players/{player}/restore', [Admin\PlayerController::class, 'restore'])->name('players.restore');
     Route::resource('organizations', Admin\OrganizationController::class)->except('show');

@@ -22,6 +22,7 @@
                 <div class="player-identity-line">
                     @if($player->position)<span>{{ $player->position }}</span>@endif
                     @if($player->currentTeam)<span><x-team-logo :team="$player->currentTeam" size="xs" />{{ $player->currentTeam->name }}</span>@else<span>Serbest oyuncu</span>@endif
+                    @if($player->nationality)<span>{{ $player->nationality }}</span>@endif
                     @if($player->national_team_name)<span>{{ $player->national_team_name }}</span>@endif
                 </div>
             </div>
@@ -40,6 +41,7 @@
             @if($player->currentTeam)<div><span>Takım</span><strong>{{ $player->currentTeam->name }}</strong></div>@endif
             @if($player->position)<div><span>Pozisyon</span><strong>{{ $player->position }}</strong></div>@endif
             @if($player->shirt_number !== null)<div><span>Forma</span><strong>#{{ $player->shirt_number }}</strong></div>@endif
+            @if($player->nationality)<div><span>Ülke / uyruk</span><strong>{{ $player->nationality }}</strong></div>@endif
             @if($player->national_team_name)<div><span>Milli takım</span><strong>{{ $player->national_team_name }}</strong></div>@endif
             @if($player->birth_date)<div><span>Yaş</span><strong>{{ $player->age }}</strong><small>{{ $player->birth_date->format('d.m.Y') }}</small></div>@endif
             @if($player->formatted_market_value)<div><span>Piyasa değeri</span><strong>{{ $player->formatted_market_value }}</strong></div>@endif
