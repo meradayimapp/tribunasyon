@@ -179,7 +179,7 @@ class PlayerController extends Controller
 
     private function deleteIfUnused(MediaStorageService $media, ?string $path, string $column, string $directory): void
     {
-        if ($path && str_starts_with($path, $directory) && ! Player::withTrashed()->where($column, $path)->exists()) {
+        if ($media->isManagedPath($path, $directory) && ! Player::withTrashed()->where($column, $path)->exists()) {
             $media->delete($path);
         }
     }

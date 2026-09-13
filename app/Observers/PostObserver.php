@@ -4,11 +4,13 @@ namespace App\Observers;
 
 use App\Models\Post;
 use App\Models\PostMedia;
+use App\Services\MediaStorageService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class PostObserver
 {
+    public function __construct(private readonly MediaStorageService $storage) {}
+
     public function deleting(Post $post): void
     {
         if ($post->isForceDeleting()) {
@@ -23,7 +25,7 @@ class PostObserver
         DB::afterCommit(function () use ($paths): void {
             foreach ($paths as $path) {
                 if (! PostMedia::where('path', $path)->exists()) {
-                    Storage::disk('public')->delete($path);
+                    $this->storage->delete($path);
                 }
             }
         });

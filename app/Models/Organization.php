@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use App\Enums\OrganizationStatus;
+use App\Services\MediaUrlResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Storage;
 
 class Organization extends Model
 {
@@ -32,6 +32,6 @@ class Organization extends Model
 
     public function logoUrl(): ?string
     {
-        return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
+        return app(MediaUrlResolver::class)->url($this->logo_path);
     }
 }

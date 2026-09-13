@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TeamStatus;
+use App\Services\MediaUrlResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
 
 class Team extends Model
 {
@@ -71,12 +71,12 @@ class Team extends Model
 
         return str_starts_with($this->logo, 'images/')
             ? asset($this->logo)
-            : Storage::disk('public')->url($this->logo);
+            : app(MediaUrlResolver::class)->url($this->logo);
     }
 
     public function coverImageUrl(): ?string
     {
-        return $this->cover_image ? Storage::disk('public')->url($this->cover_image) : null;
+        return app(MediaUrlResolver::class)->url($this->cover_image);
     }
 
     public function getRouteKeyName(): string

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\MediaUrlResolver;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class SiteSetting extends Model
 {
@@ -42,11 +42,13 @@ class SiteSetting extends Model
     {
         $path = in_array($column, self::MEDIA_COLUMNS, true) ? $this->{$column} : null;
 
-        if (! $path || ! str_starts_with($path, 'branding/') || ! Storage::disk('public')->exists($path)) {
+        $media = app(MediaUrlResolver::class);
+
+        if (! $media->isManagedPath($path, 'branding') || ! $media->exists($path)) {
             return null;
         }
 
-        return Storage::disk('public')->url($path);
+        return $media->url($path);
     }
 
     public function themeLogoUrl(string $theme, bool $compact = false): ?string

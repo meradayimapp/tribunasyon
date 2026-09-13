@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UtcDateTime;
 use App\Enums\PlayerStatus;
+use App\Services\MediaUrlResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
 
 class Player extends Model
 {
@@ -109,12 +109,12 @@ class Player extends Model
 
     public function photoUrl(): ?string
     {
-        return $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null;
+        return app(MediaUrlResolver::class)->url($this->photo_path);
     }
 
     public function coverImageUrl(): ?string
     {
-        return $this->cover_image_path ? Storage::disk('public')->url($this->cover_image_path) : null;
+        return app(MediaUrlResolver::class)->url($this->cover_image_path);
     }
 
     public function getRouteKeyName(): string

@@ -7,7 +7,6 @@ use App\Models\Post;
 use App\Models\PostMedia;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -63,7 +62,7 @@ class PostMediaService
                 return $removed->pluck('path')->all();
             });
         } catch (Throwable $exception) {
-            Storage::disk('public')->delete($storedPaths);
+            $this->storage->delete($storedPaths);
 
             throw $exception;
         }
@@ -120,7 +119,7 @@ class PostMediaService
     private function deleteIfUnused(string $path): void
     {
         if (! PostMedia::where('path', $path)->exists()) {
-            Storage::disk('public')->delete($path);
+            $this->storage->delete($path);
         }
     }
 }

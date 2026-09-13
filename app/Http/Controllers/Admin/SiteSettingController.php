@@ -89,7 +89,7 @@ class SiteSettingController extends Controller
 
     private function deleteBrandingIfUnused(MediaStorageService $media, ?string $path): void
     {
-        if (! $path || ! str_starts_with($path, 'branding/')) {
+        if (! $media->isManagedPath($path, 'branding')) {
             return;
         }
 

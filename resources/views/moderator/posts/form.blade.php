@@ -3,7 +3,7 @@
 @section('content')
 @php
     $existingMedia = $post->exists
-        ? $post->media->map(fn ($media) => ['id' => $media->id, 'url' => Storage::url($media->path)])->values()
+        ? $post->media->map(fn ($media) => ['id' => $media->id, 'url' => app(\App\Services\MediaUrlResolver::class)->url($media->path)])->values()
         : collect();
 @endphp
 <div class="panel-shell">

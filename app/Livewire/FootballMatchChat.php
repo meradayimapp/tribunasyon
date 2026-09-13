@@ -6,11 +6,11 @@ use App\Enums\UserRole;
 use App\Models\FootballMatch;
 use App\Models\FootballMatchChatMessage;
 use App\Services\FootballMatchChatQuery;
+use App\Services\MediaUrlResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 
 class FootballMatchChat extends Component
@@ -193,7 +193,7 @@ class FootballMatchChat extends Component
                 'user' => [
                     'name' => $message->user->name,
                     'username' => $message->user->username,
-                    'avatar_url' => $message->user->avatar_path ? Storage::disk('public')->url($message->user->avatar_path) : null,
+                    'avatar_url' => app(MediaUrlResolver::class)->url($message->user->avatar_path),
                     'initials' => mb_strtoupper(mb_substr($message->user->name, 0, 2)),
                     'role' => $role->value,
                     'role_label' => match ($role) {

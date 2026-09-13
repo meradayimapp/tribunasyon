@@ -180,7 +180,7 @@ class TeamController extends Controller
         string $column,
         string $managedDirectory,
     ): void {
-        if ($path && str_starts_with($path, $managedDirectory) && ! Team::withTrashed()->where($column, $path)->exists()) {
+        if ($media->isManagedPath($path, $managedDirectory) && ! Team::withTrashed()->where($column, $path)->exists()) {
             $media->delete($path);
         }
     }

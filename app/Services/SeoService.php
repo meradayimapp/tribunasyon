@@ -8,12 +8,13 @@ use App\Models\FootballMatch;
 use App\Models\Post;
 use App\Models\Team;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class SeoService
 {
     public const DEFAULT_DESCRIPTION = 'Takım topluluklarının sosyal futbol platformu.';
+
+    public function __construct(private readonly MediaUrlResolver $media) {}
 
     public function defaults(Request $request, ?string $pageTitle = null): SeoData
     {
@@ -162,7 +163,7 @@ class SeoService
     {
         $path = $post->media->first()?->path ?: $post->image_path;
 
-        return $path ? $this->absolute(Storage::disk('public')->url($path)) : null;
+        return $this->absolute($this->media->url($path));
     }
 
     private function eventStatus(string $status): ?string

@@ -121,7 +121,7 @@ class OrganizationController extends Controller
 
     private function deleteLogoIfUnused(MediaStorageService $media, ?string $path): void
     {
-        if ($path && str_starts_with($path, 'organizations/logos/') && ! Organization::where('logo_path', $path)->exists()) {
+        if ($media->isManagedPath($path, 'organizations/logos') && ! Organization::where('logo_path', $path)->exists()) {
             $media->delete($path);
         }
     }

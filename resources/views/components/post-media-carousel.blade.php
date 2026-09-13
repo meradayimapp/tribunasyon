@@ -10,7 +10,7 @@
     <div class="post-media-track" x-ref="track" @scroll.passive="sync">
         @foreach($mediaItems as $index => $media)
             <a class="post-media-slide" href="{{ route('posts.show', [$post->team, $post]) }}" aria-label="Gönderiyi ve yorumları aç{{ $mediaItems->count() > 1 ? ' · Görsel '.($index + 1) : '' }}">
-                <img class="post-media" src="{{ Storage::url($media->path) }}" alt="{{ $post->team->name }} gönderi görseli {{ $index + 1 }}" width="1080" height="1350" loading="lazy" decoding="async">
+                <img class="post-media" src="{{ app(\App\Services\MediaUrlResolver::class)->url($media->path) }}" alt="{{ $post->team->name }} gönderi görseli {{ $index + 1 }}" width="1080" height="1350" loading="lazy" decoding="async">
             </a>
         @endforeach
     </div>
