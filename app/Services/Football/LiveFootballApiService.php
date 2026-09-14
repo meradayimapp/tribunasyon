@@ -37,6 +37,29 @@ class LiveFootballApiService
         return $data;
     }
 
+    public function leagueStandings(string $leagueId, ?string $season = null): array
+    {
+        $leagueId = trim($leagueId);
+
+        if ($leagueId === '') {
+            throw new LiveFootballApiException('Lig kimliği boş olamaz.');
+        }
+
+        $query = ['league_id' => $leagueId];
+
+        if (filled($season)) {
+            $query['season'] = $season;
+        }
+
+        $data = $this->get('league_standings', $query);
+
+        if ((string) ($data['league_id'] ?? '') !== $leagueId || ! is_array($data['standings'] ?? null)) {
+            throw new LiveFootballApiException('Puan durumu yanıtı beklenen veri yapısında değil.');
+        }
+
+        return $data;
+    }
+
     public function matchesForDate(Carbon|string $date): array
     {
         $date = $date instanceof Carbon ? $date->format('Y-m-d') : $date;

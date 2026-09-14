@@ -47,6 +47,33 @@ class LiveFootballApiServiceTest extends TestCase
         });
     }
 
+    public function test_it_requests_and_validates_league_standings(): void
+    {
+        Http::fake([
+            'football.test/api/v1/league_standings*' => Http::response([
+                'success' => true,
+                'data' => [
+                    'league_id' => 'league-1',
+                    'season' => '2026/2027',
+                    'standings' => [['title' => 'Lig', 'table' => []]],
+                ],
+            ]),
+        ]);
+
+        $data = app(LiveFootballApiService::class)->leagueStandings('league-1', '2026/2027');
+
+        $this->assertSame('2026/2027', $data['season']);
+        Http::assertSent(function (Request $request): bool {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+            return str_starts_with($request->url(), 'https://football.test/api/v1/league_standings?')
+                && ($query['api_key'] ?? null) === 'test-secret-key'
+                && ($query['league_id'] ?? null) === 'league-1'
+                && ($query['season'] ?? null) === '2026/2027'
+                && ($query['lang'] ?? null) === 'tr';
+        });
+    }
+
     public function test_it_requests_matches_using_the_expected_date_format(): void
     {
         Http::fake([

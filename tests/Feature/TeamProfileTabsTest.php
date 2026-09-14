@@ -54,6 +54,7 @@ class TeamProfileTabsTest extends TestCase
             ->assertSee($post->body)
             ->assertSee(route('teams.show', $team), false)
             ->assertSee(route('teams.fixtures', $team), false)
+            ->assertSee(route('teams.standings', $team), false)
             ->assertSee(route('teams.players', $team), false)
             ->assertSee('Takım topluluğu');
     }
@@ -305,6 +306,7 @@ class TeamProfileTabsTest extends TestCase
 
         $this->get(route('teams.show', $team))->assertNotFound();
         $this->get(route('teams.fixtures', $team))->assertNotFound();
+        $this->get(route('teams.standings', $team))->assertNotFound();
         $this->get(route('teams.players', $team))->assertNotFound();
     }
 

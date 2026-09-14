@@ -62,6 +62,11 @@ class SeoService
                 "{$team->name} fikstürü, yaklaşan maçları ve güncel sonuçları {$this->siteName()}'da.",
                 'teams.fixtures',
             ],
+            'standings' => [
+                "{$team->name} Puan Durumu | {$this->siteName()}",
+                "{$team->name}’nin ligdeki güncel sıralaması, puanı, averajı ve son 5 maç formu.",
+                'teams.standings',
+            ],
             'players' => [
                 "{$team->name} Oyuncuları ve Kadrosu | {$this->siteName()}",
                 "{$team->name} oyuncuları, güncel kadrosu ve futbolcu profilleri {$this->siteName()}'da.",

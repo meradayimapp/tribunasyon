@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\FootballCompetition;
 use App\Models\FootballMatch;
+use App\Models\FootballTeam;
 use App\Models\Team;
+use App\Services\Football\LeagueStandingsService;
+use App\Services\Football\LiveFootballApiService;
 use App\Services\SeoService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -103,6 +106,65 @@ class TeamController extends Controller
             'players' => $players,
             'search' => $search,
             'seo' => $seoService->team($team, 'players'),
+        ]);
+    }
+
+    public function standings(Team $team, SeoService $seoService, LeagueStandingsService $standingsService): View
+    {
+        $this->loadPublicProfile($team);
+
+        $footballTeams = $team->footballTeams()
+            ->where('provider', LiveFootballApiService::PROVIDER)
+            ->where('is_active', true)
+            ->get(['id', 'provider_team_id']);
+        $footballTeamIds = $footballTeams->pluck('id')->all();
+        $competition = null;
+        $standings = null;
+
+        if ($footballTeamIds !== []) {
+            $competition = FootballCompetition::query()
+                ->active()
+                ->where('provider', LiveFootballApiService::PROVIDER)
+                ->whereHas('matches', fn (Builder $query): Builder => $query->where(
+                    fn (Builder $matches): Builder => $this->forFootballTeams($matches, $footballTeamIds)
+                ))
+                ->ordered()
+                ->first(['id', 'provider_league_id', 'name', 'display_name', 'current_season']);
+
+            if ($competition !== null) {
+                $standings = $standingsService->forLeague($competition->provider_league_id);
+            }
+        }
+
+        $tables = collect($standings['tables'] ?? [])
+            ->filter(fn (mixed $table): bool => is_array($table) && ($table['rows'] ?? []) !== [])
+            ->values();
+        $providerTeamIds = $tables
+            ->flatMap(fn (array $table): array => $table['rows'])
+            ->pluck('provider_team_id')
+            ->unique()
+            ->values();
+        $localLogos = $providerTeamIds->isEmpty()
+            ? collect()
+            : FootballTeam::query()
+                ->where('provider', LiveFootballApiService::PROVIDER)
+                ->whereIn('provider_team_id', $providerTeamIds)
+                ->with('team:id,name,slug,logo')
+                ->get(['id', 'provider_team_id', 'team_id'])
+                ->mapWithKeys(fn (FootballTeam $footballTeam): array => [
+                    $footballTeam->provider_team_id => $footballTeam->team?->logoUrl(),
+                ])
+                ->filter();
+
+        return view('teams.standings', [
+            'team' => $team,
+            'competition' => $competition,
+            'mappingMissing' => $competition === null,
+            'season' => $standings['season'] ?? null,
+            'tables' => $tables,
+            'currentProviderTeamIds' => $footballTeams->pluck('provider_team_id')->all(),
+            'localLogos' => $localLogos,
+            'seo' => $seoService->team($team, 'standings'),
         ]);
     }
 

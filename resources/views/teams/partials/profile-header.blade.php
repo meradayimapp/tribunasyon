@@ -9,5 +9,6 @@
 <nav class="team-profile-tabs" aria-label="Takım profili bölümleri">
     <a href="{{ route('teams.show', $team) }}" @class(['active' => $activeTab === 'feed']) @if($activeTab === 'feed') aria-current="page" @endif>Akış</a>
     <a href="{{ route('teams.fixtures', $team) }}" @class(['active' => $activeTab === 'fixtures']) @if($activeTab === 'fixtures') aria-current="page" @endif>Fikstür</a>
+    <a href="{{ route('teams.standings', $team) }}" @class(['active' => $activeTab === 'standings']) @if($activeTab === 'standings') aria-current="page" @endif>Puan Durumu</a>
     <a href="{{ route('teams.players', $team) }}" @class(['active' => $activeTab === 'players']) @if($activeTab === 'players') aria-current="page" @endif>Oyuncular</a>
 </nav>

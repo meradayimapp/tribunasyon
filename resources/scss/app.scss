@@ -268,7 +268,7 @@ html:root { --livewire-progress-bar-color: var(--brand-cyan); }
 .team-feed-heading h2 { margin: 0; font-size: 1rem; font-weight: 600; }
 .team-feed-heading span { color: var(--muted); font-size: .75rem; }
 .team-profile-hero { margin-bottom: 0; border-radius: 16px 16px 0 0; }
-.team-profile-tabs { position: sticky; top: 60px; z-index: 20; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 18px; padding: 0 14px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(16px); }
+.team-profile-tabs { position: sticky; top: 60px; z-index: 20; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; padding: 0 14px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(16px); }
 .team-profile-tabs a { position: relative; min-width: 0; min-height: 48px; display: grid; place-items: center; padding: 0 8px; color: var(--muted); font-size: .78rem; font-weight: 650; transition: color .15s ease, background .15s ease; }
 .team-profile-tabs a:hover { color: var(--ink); background: var(--hover); }
 .team-profile-tabs a.active { color: var(--accent); }
@@ -310,6 +310,41 @@ html:root { --livewire-progress-bar-color: var(--brand-cyan); }
 .team-player-row > .ui-icon { width: 18px; color: var(--muted); transition: color .15s ease, transform .15s ease; }
 .team-player-row:hover > .ui-icon { color: var(--accent); transform: translateX(2px); }
 .team-player-list > .team-tab-empty { border: 0; border-radius: 0; }
+.standings-page { max-width: 900px; }
+.standings-content { min-width: 0; }
+.standings-heading { min-height: 65px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+.standings-heading span { display: block; margin-bottom: 2px; color: var(--muted); font-size: .66rem; font-weight: 600; }
+.standings-heading h2 { margin: 0; font-size: 1rem; font-weight: 720; }
+.standings-heading > strong { color: var(--accent); font-size: .79rem; font-weight: 700; }
+.standings-group-title { margin: 18px 2px 8px; font-size: .8rem; font-weight: 700; }
+.standings-table-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); overscroll-behavior-inline: contain; scrollbar-width: thin; }
+.standings-table { width: 100%; min-width: 810px; border-collapse: separate; border-spacing: 0; color: var(--ink); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.standings-table th, .standings-table td { height: 47px; padding: 0 8px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; background: var(--surface); }
+.standings-table thead th { height: 39px; color: var(--muted); font-size: .65rem; font-weight: 650; }
+.standings-table abbr { text-decoration: none; cursor: help; }
+.standings-table tbody tr:last-child > * { border-bottom: 0; }
+.standings-table tbody tr:hover > * { background: var(--hover); }
+.standings-table .standings-rank { position: sticky; left: 0; z-index: 2; width: 42px; min-width: 42px; padding-right: 5px; padding-left: 5px; border-left: 3px solid var(--standing-zone, transparent); font-weight: 700; }
+.standings-table thead .standings-rank { z-index: 4; border-left-color: transparent; }
+.standings-table .standings-team { position: sticky; left: 42px; z-index: 2; width: 210px; min-width: 210px; max-width: 210px; text-align: left; }
+.standings-table thead .standings-team { z-index: 4; }
+.standings-table tbody .standings-team { overflow: hidden; font-size: .77rem; font-weight: 620; }
+.standings-team-inner { height: 47px; display: flex; align-items: center; gap: 9px; overflow: hidden; }
+.standings-team-name { overflow: hidden; text-overflow: ellipsis; }
+.standings-club-logo { width: 27px; height: 27px; display: grid; place-items: center; flex: 0 0 27px; }
+.standings-club-logo img { width: 100%; height: 100%; object-fit: contain; }
+.standings-table .standings-points { font-weight: 760; }
+.standings-table tbody tr.is-current-team > * { background: color-mix(in srgb, var(--accent-soft) 75%, var(--surface)); font-weight: 700; }
+.standings-table tbody tr.is-current-team:hover > * { background: color-mix(in srgb, var(--accent-soft) 75%, var(--hover)); }
+.standings-table tbody tr.is-current-team .standings-rank { border-left-color: var(--accent); }
+.standings-form-heading, .standings-form { width: 128px; min-width: 128px; }
+.standings-form { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.form-result { width: 19px; height: 19px; display: inline-grid; place-items: center; border-radius: 50%; color: #fff; }
+.form-result .ui-icon { width: 10px; height: 10px; }
+.form-win { background: #198754; }
+.form-draw { background: #737985; font-size: .78rem; font-weight: 800; }
+.form-loss { background: #dc3545; }
+.standings-no-form { color: var(--muted); }
 .desktop-back { margin-bottom: 16px; }
 .desktop-back a { display: inline-flex; align-items: center; gap: .45rem; color: var(--muted); font-size: .79rem; font-weight: 500; }
 .desktop-back a:hover { color: var(--ink); }
@@ -868,9 +903,15 @@ html:root { --livewire-progress-bar-color: var(--brand-cyan); }
   .chat-error { padding-right: 64px; padding-left: 12px; }
   .team-profile-hero { margin-bottom: 0; border-radius: 0; }
   .team-profile-tabs { top: 52px; margin-bottom: 14px; padding: 0 6px; border-right: 0; border-left: 0; border-radius: 0; }
-  .team-profile-tabs a { min-height: 46px; }
+  .team-profile-tabs a { min-height: 46px; padding: 0 2px; font-size: .66rem; }
   .team-tab-content { padding: 0 12px; }
   .competition-chips { margin-right: -12px; margin-left: -12px; padding-right: 12px; padding-left: 12px; }
+  .standings-content { padding-right: 0; padding-left: 0; }
+  .standings-heading { margin-right: 12px; margin-left: 12px; }
+  .standings-group-title { margin-left: 14px; }
+  .standings-table-scroll { border-right: 0; border-left: 0; border-radius: 0; }
+  .standings-table { min-width: 790px; }
+  .standings-table .standings-team { width: 175px; min-width: 175px; max-width: 175px; }
   .team-player-row { min-height: 72px; grid-template-columns: 28px 48px minmax(0, 1fr) 18px; gap: 9px; padding: 9px 10px; }
   .team-player-avatar { width: 48px; height: 48px; }
 }
