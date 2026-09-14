@@ -134,6 +134,27 @@ class TeamStandingsTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/data-current-team="true"[^>]*>.*?Galatasaray.*?<\/tr>/s', $html);
     }
 
+    public function test_linked_standings_team_logo_and_name_open_its_social_profile(): void
+    {
+        $team = $this->team(['name' => 'Birinci', 'slug' => 'birinci']);
+        $otherTeam = $this->team(['name' => 'İkinci', 'slug' => 'ikinci']);
+        $competition = $this->competition();
+        $first = $this->footballTeam('first-id', 'Birinci', $team);
+        $second = $this->footballTeam('second-id', 'İkinci', $otherTeam);
+        $this->linkToCompetition($competition, $first, $second);
+        Http::fake(['*' => Http::response($this->response([
+            $this->row('first-id', 'Birinci'),
+            $this->row('second-id', 'İkinci', ['rank' => 2]),
+            $this->row('unlinked-id', 'Bağlantısız', ['rank' => 3]),
+        ]))]);
+
+        $html = $this->get(route('teams.standings', $team))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/<a class="standings-team-inner standings-team-link" href="'.preg_quote(route('teams.show', $team), '/').'">.*Birinci.*<\/a>/s', $html);
+        $this->assertMatchesRegularExpression('/<a class="standings-team-inner standings-team-link" href="'.preg_quote(route('teams.show', $otherTeam), '/').'">.*İkinci.*<\/a>/s', $html);
+        $this->assertSame(2, substr_count($html, 'standings-team-inner standings-team-link'));
+    }
+
     public function test_same_league_uses_one_cached_payload_across_team_pages(): void
     {
         $competition = $this->competition();

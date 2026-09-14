@@ -331,6 +331,8 @@ html:root { --livewire-progress-bar-color: var(--brand-cyan); }
 .standings-table tbody .standings-team { overflow: hidden; font-size: .77rem; font-weight: 620; }
 .standings-team-inner { height: 47px; display: flex; align-items: center; gap: 9px; overflow: hidden; }
 .standings-team-name { overflow: hidden; text-overflow: ellipsis; }
+.standings-team-link:hover .standings-team-name { color: var(--accent); }
+.standings-team-link:focus-visible { border-radius: 5px; outline: 2px solid var(--accent); outline-offset: 2px; }
 .standings-club-logo { width: 27px; height: 27px; display: grid; place-items: center; flex: 0 0 27px; }
 .standings-club-logo img { width: 100%; height: 100%; object-fit: contain; }
 .standings-table .standings-points { font-weight: 760; }

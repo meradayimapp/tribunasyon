@@ -144,17 +144,21 @@ class TeamController extends Controller
             ->pluck('provider_team_id')
             ->unique()
             ->values();
-        $localLogos = $providerTeamIds->isEmpty()
+        $localTeams = $providerTeamIds->isEmpty()
             ? collect()
             : FootballTeam::query()
                 ->where('provider', LiveFootballApiService::PROVIDER)
+                ->where('is_active', true)
                 ->whereIn('provider_team_id', $providerTeamIds)
+                ->whereHas('team', fn (Builder $query): Builder => $query->active())
                 ->with('team:id,name,slug,logo')
                 ->get(['id', 'provider_team_id', 'team_id'])
                 ->mapWithKeys(fn (FootballTeam $footballTeam): array => [
-                    $footballTeam->provider_team_id => $footballTeam->team?->logoUrl(),
-                ])
-                ->filter();
+                    $footballTeam->provider_team_id => [
+                        'logo' => $footballTeam->team->logoUrl(),
+                        'url' => route('teams.show', $footballTeam->team),
+                    ],
+                ]);
 
         return view('teams.standings', [
             'team' => $team,
@@ -163,7 +167,7 @@ class TeamController extends Controller
             'season' => $standings['season'] ?? null,
             'tables' => $tables,
             'currentProviderTeamIds' => $footballTeams->pluck('provider_team_id')->all(),
-            'localLogos' => $localLogos,
+            'localTeams' => $localTeams,
             'seo' => $seoService->team($team, 'standings'),
         ]);
     }

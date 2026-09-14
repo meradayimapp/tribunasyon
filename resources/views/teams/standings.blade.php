@@ -42,15 +42,23 @@
                             @foreach($table['rows'] as $row)
                                 @php
                                     $isCurrentTeam = in_array($row['provider_team_id'], $currentProviderTeamIds, true);
-                                    $logo = $localLogos->get($row['provider_team_id']) ?: $row['team_logo'];
+                                    $localTeam = $localTeams->get($row['provider_team_id']);
+                                    $logo = ($localTeam['logo'] ?? null) ?: $row['team_logo'];
                                 @endphp
                                 <tr @class(['is-current-team' => $isCurrentTeam]) @if($isCurrentTeam) data-current-team="true" @endif @if($row['zone_name']) title="{{ $row['zone_name'] }}" @endif @if($row['zone_color']) style="--standing-zone:{{ $row['zone_color'] }}" @endif>
                                     <td class="standings-rank">{{ $row['rank'] }}</td>
                                     <th class="standings-team" scope="row">
-                                        <span class="standings-team-inner">
-                                            <span class="standings-club-logo">@if($logo)<img src="{{ $logo }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">@endif</span>
-                                            <span class="standings-team-name">{{ $row['team_name'] }}</span>
-                                        </span>
+                                        @if($localTeam)
+                                            <a class="standings-team-inner standings-team-link" href="{{ $localTeam['url'] }}">
+                                                <span class="standings-club-logo">@if($logo)<img src="{{ $logo }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">@endif</span>
+                                                <span class="standings-team-name">{{ $row['team_name'] }}</span>
+                                            </a>
+                                        @else
+                                            <span class="standings-team-inner">
+                                                <span class="standings-club-logo">@if($logo)<img src="{{ $logo }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">@endif</span>
+                                                <span class="standings-team-name">{{ $row['team_name'] }}</span>
+                                            </span>
+                                        @endif
                                     </th>
                                     <td>{{ $row['played'] }}</td>
                                     <td>{{ $row['won'] }}</td>
