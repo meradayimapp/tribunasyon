@@ -112,6 +112,7 @@ class PlayerPublicTest extends TestCase
 
         $response = $this->get(route('players.index'))->assertOk()
             ->assertSee('https://cdn.test/directory.png', false)
+            ->assertSee('class="player-card-provider-image" src="https://cdn.test/directory.png"', false)
             ->assertSee('manual.png', false)
             ->assertDontSee('https://cdn.test/ignored.png', false)
             ->assertSee(route('players.show', $provider), false)

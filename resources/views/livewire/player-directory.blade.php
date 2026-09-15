@@ -19,7 +19,7 @@
             @php($displayImageUrl = $player->displayImageUrl())
             <a class="player-card" href="{{ route('players.show', $player) }}" wire:key="player-card-{{ $player->id }}">
                 <div class="player-card-photo">
-                    @if($displayImageUrl)<img src="{{ $displayImageUrl }}" alt="{{ $player->name }} fotoğrafı" loading="lazy" decoding="async" onerror="this.remove(); this.nextElementSibling.style.display=''">@endif<span @if($displayImageUrl) style="display:none" @endif>{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}</span>
+                    @if($displayImageUrl)<img @class(['player-card-provider-image' => ! $player->photoUrl()]) src="{{ $displayImageUrl }}" alt="{{ $player->name }} fotoğrafı" loading="lazy" decoding="async" onerror="this.remove(); this.nextElementSibling.style.display=''">@endif<span @if($displayImageUrl) style="display:none" @endif>{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}</span>
                     @if($rankingActive && $periodInteractions > 0 && ($players->firstItem() + $loop->index) <= 3)
                         <span class="player-rank-badge"><x-ui.icon name="trophy" /> #{{ $players->firstItem() + $loop->index }}</span>
                     @endif
