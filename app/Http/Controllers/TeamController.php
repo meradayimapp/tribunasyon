@@ -96,7 +96,7 @@ class TeamController extends Controller
         $search = mb_substr(trim((string) $request->query('q', '')), 0, 100);
         $players = $team->players()
             ->active()
-            ->select(['id', 'name', 'slug', 'photo_path', 'position', 'shirt_number', 'current_team_id', 'sort_order', 'status'])
+            ->select(['id', 'name', 'slug', 'photo_path', 'provider_image_url', 'position', 'shirt_number', 'current_team_id', 'sort_order', 'status'])
             ->ordered()
             ->get();
 

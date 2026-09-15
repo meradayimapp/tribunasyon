@@ -6,6 +6,7 @@
 @php
     $initialTab = $match->is_live ? 'sohbet' : 'ozet';
     $initialState = $match->statePayload();
+    $initialState['lineups'] = $presentedLineups;
     $initialEvents = $initialState['events'];
     $initialStats = $initialState['stats'];
     $initialHomeLineup = data_get($initialState, 'lineups.home.starting', []);
@@ -102,8 +103,8 @@
             <button type="button" @click="lineupSide = 'away'" :class="{ active: lineupSide === 'away' }" :aria-pressed="(lineupSide === 'away').toString()">{{ $match->awayTeam->resolved_name }}</button>
         </div>
         <div class="match-lineups" x-ref="lineupsList" x-show="hasLineups" @if(! $hasInitialLineups) x-cloak @endif>
-            <div x-show="lineupSide === 'home'">@include('matches.partials.lineup-team', ['side' => 'home', 'team' => $match->homeTeam])</div>
-            <div x-show="lineupSide === 'away'" x-cloak>@include('matches.partials.lineup-team', ['side' => 'away', 'team' => $match->awayTeam])</div>
+            <div x-show="lineupSide === 'home'">@include('matches.partials.lineup-team', ['side' => 'home', 'team' => $match->homeTeam, 'lineups' => $presentedLineups])</div>
+            <div x-show="lineupSide === 'away'" x-cloak>@include('matches.partials.lineup-team', ['side' => 'away', 'team' => $match->awayTeam, 'lineups' => $presentedLineups])</div>
         </div>
         <div class="match-panel-empty" x-show="!hasLineups" @if($hasInitialLineups) x-cloak @endif><strong>Kadro bilgisi henüz açıklanmadı.</strong></div>
         @if($hasInjuries)

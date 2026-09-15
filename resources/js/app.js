@@ -436,6 +436,20 @@ window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
     renderLineups() {
         const list = this.$refs.lineupsList;
         if (!list) return;
+        const profileUrl = (player) => {
+            if (!player.profile_url) return null;
+            try {
+                const url = new URL(String(player.profile_url), window.location.origin);
+                return url.origin === window.location.origin && ['http:', 'https:'].includes(url.protocol) ? url.href : null;
+            } catch { return null; }
+        };
+        const imageUrl = (player) => {
+            if (!player.image) return null;
+            try {
+                const url = new URL(String(player.image), window.location.origin);
+                return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
+            } catch { return null; }
+        };
         ['home', 'away'].forEach((side) => {
             const target = list.querySelector(`[data-lineup-side="${side}"]`);
             if (!target) return;
@@ -453,7 +467,9 @@ window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
                 rows.forEach((players) => {
                     const row = document.createElement('div'); row.className = 'match-lineup-pitch-row';
                     players.forEach((player) => {
-                        const card = document.createElement('div'); card.className = 'match-lineup-pitch-player';
+                        const href = profileUrl(player);
+                        const card = document.createElement(href ? 'a' : 'div'); card.className = `match-lineup-pitch-player${href ? ' match-lineup-player-link' : ''}`;
+                        if (href) { card.href = href; card.setAttribute('aria-label', `${player.name ?? 'Oyuncu'} profiline git`); }
                         const number = document.createElement('span'); number.textContent = String(player.number ?? '—');
                         const name = document.createElement('strong'); name.textContent = String(player.name ?? 'Oyuncu');
                         card.append(number, name);
@@ -468,15 +484,21 @@ window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
                 const ordered = document.createElement('ol'); ordered.className = 'match-lineup-list';
                 players.forEach((player) => {
                     const item = document.createElement('li');
-                    const number = document.createElement('span'); number.className = 'match-lineup-number'; number.textContent = String(player.number ?? '—'); item.append(number);
-                    if (player.image && String(player.image).startsWith('https://')) {
-                        const image = document.createElement('img'); image.src = player.image; image.alt = ''; image.loading = 'lazy'; image.onerror = () => image.remove(); item.append(image);
-                    }
-                    const info = document.createElement('span');
+                    const href = profileUrl(player);
+                    const content = document.createElement(href ? 'a' : 'div');
+                    if (href) { content.href = href; content.className = 'match-lineup-player-link'; content.setAttribute('aria-label', `${player.name ?? 'Oyuncu'} profiline git`); }
+                    const number = document.createElement('span'); number.className = 'match-lineup-number'; number.textContent = String(player.number ?? '—'); content.append(number);
+                    const src = imageUrl(player);
+                    const imagePlaceholder = () => { const node = document.createElement('span'); node.className = 'match-lineup-image-placeholder'; node.setAttribute('aria-hidden', 'true'); return node; };
+                    if (src) {
+                        const image = document.createElement('img'); image.src = src; image.alt = ''; image.loading = 'lazy'; image.onerror = () => image.replaceWith(imagePlaceholder()); content.append(image);
+                    } else content.append(imagePlaceholder());
+                    const info = document.createElement('span'); info.className = 'match-lineup-player-info';
                     const name = document.createElement('strong'); name.textContent = String(player.name ?? 'Oyuncu'); info.append(name);
-                    if (player.position) { const position = document.createElement('small'); position.textContent = String(player.position); info.append(position); }
-                    item.append(info);
-                    if (player.rating !== undefined) { const rating = document.createElement('small'); rating.className = 'match-player-rating'; rating.textContent = String(player.rating); item.append(rating); }
+                    if (player.position_display) { const position = document.createElement('small'); position.textContent = String(player.position_display); info.append(position); }
+                    content.append(info);
+                    if (player.rating !== undefined) { const rating = document.createElement('small'); rating.className = 'match-player-rating'; rating.textContent = String(player.rating); content.append(rating); }
+                    item.append(content);
                     ordered.append(item);
                 });
                 target.append(ordered);

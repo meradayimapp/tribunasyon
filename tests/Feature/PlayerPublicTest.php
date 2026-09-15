@@ -39,6 +39,41 @@ class PlayerPublicTest extends TestCase
             ->assertDontSee('<script>alert(1)</script>', false);
     }
 
+    public function test_player_image_priority_provider_fallback_and_placeholder_on_team_and_profile_pages(): void
+    {
+        $team = $this->team();
+        $provider = Player::factory()->create([
+            'name' => 'Provider Fotoğraflı', 'current_team_id' => $team->id,
+            'photo_path' => null, 'provider_image_url' => 'https://cdn.test/provider.png',
+        ]);
+        $manual = Player::factory()->create([
+            'name' => 'Manuel Fotoğraflı', 'current_team_id' => $team->id,
+            'photo_path' => 'players/photos/manual.png', 'provider_image_url' => 'https://cdn.test/ignored.png',
+        ]);
+        $placeholder = Player::factory()->create([
+            'name' => 'Resimsiz Oyuncu', 'current_team_id' => $team->id,
+            'photo_path' => null, 'provider_image_url' => null,
+        ]);
+
+        $this->assertSame('https://cdn.test/provider.png', $provider->displayImageUrl());
+        $this->assertStringContainsString('manual.png', $manual->displayImageUrl());
+        $this->assertNull($placeholder->displayImageUrl());
+        $this->assertNull(Player::factory()->make(['provider_image_url' => 'data:image/png;base64,AA'])->displayImageUrl());
+
+        $this->get(route('teams.players', $team))->assertOk()
+            ->assertSee('https://cdn.test/provider.png', false)
+            ->assertSee('manual.png', false)
+            ->assertDontSee('https://cdn.test/ignored.png', false)
+            ->assertSee('RE');
+        $this->get(route('players.show', $provider))->assertOk()
+            ->assertSee('https://cdn.test/provider.png', false);
+        $this->get(route('players.show', $manual))->assertOk()
+            ->assertSee('manual.png', false)
+            ->assertDontSee('https://cdn.test/ignored.png', false);
+        $this->get(route('players.show', $placeholder))->assertOk()
+            ->assertSee('RE');
+    }
+
     public function test_inactive_and_soft_deleted_players_are_hidden_publicly(): void
     {
         $inactive = Player::factory()->inactive()->create();

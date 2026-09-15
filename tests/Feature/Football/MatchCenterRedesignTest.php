@@ -5,11 +5,14 @@ namespace Tests\Feature\Football;
 use App\Models\FootballCompetition;
 use App\Models\FootballMatch;
 use App\Models\FootballTeam;
+use App\Models\Player;
 use App\Services\Football\FootballLiveSynchronizer;
 use App\Services\Football\MatchFormationLayout;
+use App\Services\Football\PlayerPositionFormatter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -174,7 +177,7 @@ class MatchCenterRedesignTest extends TestCase
     public function test_complete_provider_ordered_lineup_renders_pitch_and_live_chat_is_default(): void
     {
         $players = array_merge(
-            [['name' => 'Kaleci', 'position' => 'Goalkeeper', 'number' => '1']],
+            [['id' => 'keeper-1', 'name' => 'Kaleci', 'position' => 'Goalkeeper', 'number' => '1']],
             array_fill(0, 4, ['name' => 'Savunmacı', 'position' => 'Defender']),
             array_fill(0, 3, ['name' => 'Orta Saha', 'position' => 'Midfielder']),
             array_fill(0, 3, ['name' => 'Forvet', 'position' => 'Forward']),
@@ -183,12 +186,69 @@ class MatchCenterRedesignTest extends TestCase
             'status' => 'live', 'is_live' => true, 'status_display' => 'CANLI',
             'lineups' => ['home' => ['starting' => $players, 'subs' => []], 'away' => ['starting' => [], 'subs' => []], 'formation' => ['home' => 433]],
         ]);
+        $keeper = Player::factory()->create(['provider_player_id' => 'keeper-1', 'slug' => 'saha-kalecisi']);
         $this->fakeStatic();
 
         $html = $this->get(route('matches.show', $match))->assertOk()
-            ->assertSee('match-lineup-pitch', false)->assertSee('Canlı Maç Sohbeti')->getContent();
+            ->assertSee('match-lineup-pitch', false)->assertSee('Canlı Maç Sohbeti')
+            ->assertSee(route('players.show', $keeper), false)->getContent();
         $this->assertStringContainsString('matchLiveState(', $html);
+        $this->assertMatchesRegularExpression('/<a class="match-lineup-pitch-player match-lineup-player-link" href="[^"]*saha-kalecisi"/s', $html);
         $this->assertMatchesRegularExpression('/id="match-panel-sohbet"[^>]*x-show="activeTab === \'sohbet\'"[^>]*>/s', $html);
+    }
+
+    public function test_lineup_uses_only_provider_player_id_for_profile_links_and_one_bulk_lookup(): void
+    {
+        $linked = Player::factory()->create([
+            'name' => 'Yerel İsim', 'slug' => 'yerel-oyuncu', 'provider_player_id' => 'player-42',
+            'photo_path' => 'players/photos/manual.png', 'provider_image_url' => 'https://cdn.test/ignored.png',
+        ]);
+        $sameNameButDifferentId = Player::factory()->create([
+            'name' => 'Aynı İsim', 'slug' => 'yanlis-oyuncu', 'provider_player_id' => 'different-id',
+        ]);
+        [$match] = $this->match(['lineups' => [
+            'home' => ['starting' => [
+                ['id' => 'player-42', 'name' => 'API İsim', 'number' => '1', 'position' => 'Goalkeeper', 'image' => 'https://cdn.test/api.png'],
+                ['id' => 'unlinked-id', 'name' => 'Aynı İsim', 'number' => '2', 'position' => 'Defender'],
+                ['id' => 'third-id', 'name' => 'Diğer', 'position' => '<b>Wing Back</b>'],
+            ], 'subs' => [['id' => 'player-42', 'name' => 'API İsim', 'position' => 'Forward']]],
+            'away' => ['starting' => [], 'subs' => []],
+        ]]);
+        $this->fakeStatic();
+
+        DB::enableQueryLog();
+        $html = $this->get(route('matches.show', $match))->assertOk()
+            ->assertSee(route('players.show', $linked), false)
+            ->assertSee('Kaleci')->assertSee('Defans')->assertSee('Forvet')
+            ->assertSee('Wing Back')->assertDontSee('<b>Wing Back</b>', false)
+            ->assertSee('manual.png', false)->assertDontSee('https://cdn.test/ignored.png', false)
+            ->assertDontSee(route('players.show', $sameNameButDifferentId), false)
+            ->getContent();
+        $this->assertMatchesRegularExpression('/<a class="match-lineup-player-link" href="[^"]*yerel-oyuncu"[^>]*>.*?API İsim/s', $html);
+        $this->assertMatchesRegularExpression('/<div>.*?Aynı İsim/s', $html);
+
+        $bulkQueries = collect(DB::getQueryLog())->filter(fn (array $query): bool => preg_match('/from ["`]?players["`]?/i', $query['query'])
+            && str_contains($query['query'], 'provider_player_id'));
+        $this->assertCount(1, $bulkQueries);
+        DB::disableQueryLog();
+
+        $this->getJson(route('matches.state', $match))->assertOk()
+            ->assertJsonPath('lineups.home.starting.0.profile_url', route('players.show', $linked))
+            ->assertJsonPath('lineups.home.starting.0.position_display', 'Kaleci')
+            ->assertJsonPath('lineups.home.starting.1.position_display', 'Defans')
+            ->assertJsonMissingPath('lineups.home.starting.1.profile_url')
+            ->assertJsonMissingPath('lineups.home.starting.2.profile_url');
+    }
+
+    public function test_shared_position_formatter_handles_abbreviations_and_unsafe_unknowns(): void
+    {
+        foreach (['Goalkeeper' => 'Kaleci', 'GK' => 'Kaleci', 'Defender' => 'Defans', 'DF' => 'Defans',
+            'Midfielder' => 'Orta saha', 'MF' => 'Orta saha', 'Attacker' => 'Forvet',
+            'Forward' => 'Forvet', 'FW' => 'Forvet'] as $input => $expected) {
+            $this->assertSame($expected, PlayerPositionFormatter::format($input));
+        }
+        $this->assertSame('Wing Back', PlayerPositionFormatter::format('<script>bad</script>Wing Back'));
+        $this->assertNull(PlayerPositionFormatter::format(null));
     }
 
     public function test_503_uses_stale_supplement_data_without_retrying_static_endpoints(): void

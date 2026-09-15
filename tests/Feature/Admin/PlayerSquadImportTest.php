@@ -119,6 +119,7 @@ class PlayerSquadImportTest extends TestCase
             'position' => 'Orta saha',
             'shirt_number' => 9,
             'nationality' => 'Türkiye',
+            'provider_image_url' => 'https://cdn.test/player.png',
         ]);
         $imported = Player::where('provider_player_id', 'player-1')->firstOrFail();
         $this->assertNotNull($imported->provider_last_synced_at);
@@ -144,7 +145,32 @@ class PlayerSquadImportTest extends TestCase
         $this->assertSame('player-1', Player::firstOrFail()->provider_player_id);
     }
 
-    public function test_positions_are_localized_except_attacker_which_is_left_for_manual_edit(): void
+    public function test_provider_image_updates_but_empty_or_unsafe_api_image_does_not_clear_it(): void
+    {
+        $admin = $this->admin();
+        [$team] = $this->linkedTeam();
+        $player = Player::factory()->create([
+            'provider_player_id' => 'player-1',
+            'provider_image_url' => 'https://cdn.test/old.png',
+            'photo_path' => 'players/photos/manual.jpg',
+        ]);
+
+        foreach ([
+            ['image' => 'https://cdn.test/new.png', 'expected' => 'https://cdn.test/new.png'],
+            ['image' => null, 'expected' => 'https://cdn.test/new.png'],
+            ['image' => 'javascript:alert(1)', 'expected' => 'https://cdn.test/new.png'],
+        ] as $case) {
+            Http::fake(['*' => Http::response($this->squadResponse([
+                $this->apiPlayer(['image' => $case['image']]),
+            ]))]);
+            $token = $this->previewToken($admin, $team);
+            $this->apply($admin, $team, $token, [$this->choice('player-1', 'sync')]);
+            $this->assertSame($case['expected'], $player->fresh()->provider_image_url);
+            $this->assertSame('players/photos/manual.jpg', $player->fresh()->photo_path);
+        }
+    }
+
+    public function test_known_positions_are_localized_and_unknown_positions_keep_safe_fallback(): void
     {
         $admin = $this->admin();
         [$team] = $this->linkedTeam();
@@ -153,6 +179,7 @@ class PlayerSquadImportTest extends TestCase
             $this->apiPlayer(['id' => 'defender-1', 'name' => 'Defans Oyuncusu', 'position' => 'Defender']),
             $this->apiPlayer(['id' => 'midfielder-1', 'name' => 'Orta Saha Oyuncusu', 'position' => 'Midfielder']),
             $this->apiPlayer(['id' => 'attacker-1', 'name' => 'Hücum Oyuncusu', 'position' => 'Attacker']),
+            $this->apiPlayer(['id' => 'unknown-1', 'name' => 'Diğer Oyuncu', 'position' => '<b>Wing Back</b>']),
         ]))]);
 
         $preview = app(PlayerSquadSyncService::class)->createPreview($admin, $team);
@@ -161,13 +188,16 @@ class PlayerSquadImportTest extends TestCase
         $this->assertSame('Kaleci', $players['goalkeeper-1']['position']);
         $this->assertSame('Defans', $players['defender-1']['position']);
         $this->assertSame('Orta saha', $players['midfielder-1']['position']);
-        $this->assertNull($players['attacker-1']['position']);
-        $this->assertTrue($players['attacker-1']['position_requires_manual_edit']);
+        $this->assertSame('Forvet', $players['attacker-1']['position']);
+        $this->assertFalse($players['attacker-1']['position_requires_manual_edit']);
+        $this->assertSame('Wing Back', $players['unknown-1']['position']);
+        $this->assertTrue($players['unknown-1']['position_requires_manual_edit']);
 
         $this->actingAs($admin)
             ->get(route('admin.players.import.create', ['team_id' => $team->id, 'token' => $preview['token']]))
             ->assertOk()
-            ->assertSee('Manuel düzenlenecek');
+            ->assertSee('Wing Back')
+            ->assertDontSee('<b>Wing Back</b>', false);
     }
 
     public function test_attacker_sync_preserves_a_manually_entered_position(): void
@@ -221,6 +251,7 @@ class PlayerSquadImportTest extends TestCase
         $this->assertSame('kalici-slug', $player->slug);
         $this->assertSame($newTeam->id, $player->current_team_id);
         $this->assertSame('players/photos/manual.jpg', $player->photo_path);
+        $this->assertSame('https://cdn.test/player.png', $player->provider_image_url);
         $this->assertSame('players/covers/manual.jpg', $player->cover_image_path);
         $this->assertSame('Manuel biyografi', $player->bio);
         $this->assertSame('Türkiye Milli Takımı', $player->national_team_name);
@@ -284,6 +315,7 @@ class PlayerSquadImportTest extends TestCase
         $this->assertSame('API Oyuncusu', $manual->name);
         $this->assertSame('manuel-kayit', $manual->slug);
         $this->assertSame('players/photos/manual.jpg', $manual->photo_path);
+        $this->assertSame('https://cdn.test/player.png', $manual->provider_image_url);
         $this->assertSame('players/covers/manual.jpg', $manual->cover_image_path);
         $this->assertSame('Korunur', $manual->bio);
         $this->assertSame(PlayerStatus::Inactive, $manual->status);
@@ -395,9 +427,10 @@ class PlayerSquadImportTest extends TestCase
         $serialized = json_encode($cached);
 
         $this->assertStringNotContainsString('fixture-only-secret', $serialized);
-        $this->assertStringNotContainsString('https://cdn.test/player.png', $serialized);
+        $this->assertStringContainsString('https://cdn.test/player.png', str_replace('\\/', '/', $serialized));
         $this->assertStringNotContainsString('yellow_cards', $serialized);
         $this->assertSame('Türkiye', $cached['players'][0]['nationality']);
+        $this->assertSame('https://cdn.test/player.png', $cached['players'][0]['provider_image_url']);
     }
 
     public function test_transaction_failure_does_not_leave_partial_import(): void

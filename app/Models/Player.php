@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UtcDateTime;
 use App\Enums\PlayerStatus;
+use App\Services\Football\PlayerPositionFormatter;
 use App\Services\MediaUrlResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +22,7 @@ class Player extends Model
         'name', 'slug', 'photo_path', 'cover_image_path', 'position', 'shirt_number',
         'current_team_id', 'nationality', 'national_team_name', 'national_team_code', 'birth_date',
         'market_value_amount', 'market_value_currency', 'bio', 'status', 'sort_order',
-        'provider_player_id', 'provider_last_synced_at',
+        'provider_player_id', 'provider_image_url', 'provider_last_synced_at',
     ];
 
     protected function casts(): array
@@ -110,6 +111,30 @@ class Player extends Model
     public function photoUrl(): ?string
     {
         return app(MediaUrlResolver::class)->url($this->photo_path);
+    }
+
+    public function displayImageUrl(): ?string
+    {
+        return $this->photoUrl() ?: self::safeProviderImageUrl($this->provider_image_url);
+    }
+
+    public static function safeProviderImageUrl(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $url = trim($value);
+        if ($url === '' || strlen($url) > 500 || ! filter_var($url, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
+        return in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true) ? $url : null;
+    }
+
+    public function positionLabel(): ?string
+    {
+        return PlayerPositionFormatter::format($this->position);
     }
 
     public function coverImageUrl(): ?string

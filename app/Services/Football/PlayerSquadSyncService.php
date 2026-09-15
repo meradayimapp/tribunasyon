@@ -138,6 +138,7 @@ class PlayerSquadSyncService
             $normalized[] = [
                 'provider_player_id' => $providerPlayerId,
                 'name' => $name,
+                'provider_image_url' => Player::safeProviderImageUrl($item['image'] ?? null),
                 'position' => $position['value'],
                 'position_requires_manual_edit' => $position['requires_manual_edit'],
                 'shirt_number' => $this->shirtNumber($item['number'] ?? null),
@@ -304,7 +305,7 @@ class PlayerSquadSyncService
                     throw new PlayerSquadSyncException("{$apiPlayer['name']} başka bir yerel oyuncuya zaten bağlı.");
                 }
 
-                $existing->update($this->apiControlledAttributes($apiPlayer, $team, $syncedAt));
+                $existing->update($this->apiControlledAttributes($apiPlayer, $team, $syncedAt, $existing));
                 $summary['updated']++;
             } elseif ($selection['action'] === 'map') {
                 $localPlayer = Player::query()
@@ -318,7 +319,7 @@ class PlayerSquadSyncService
                     throw new PlayerSquadSyncException("{$apiPlayer['name']} için seçilen yerel oyuncu artık eşleştirilemez.");
                 }
 
-                $localPlayer->update($this->apiControlledAttributes($apiPlayer, $team, $syncedAt) + [
+                $localPlayer->update($this->apiControlledAttributes($apiPlayer, $team, $syncedAt, $localPlayer) + [
                     'provider_player_id' => $apiPlayer['provider_player_id'],
                 ]);
                 $summary['mapped']++;
@@ -340,7 +341,7 @@ class PlayerSquadSyncService
         return $summary;
     }
 
-    private function apiControlledAttributes(array $apiPlayer, Team $team, CarbonImmutable $syncedAt): array
+    private function apiControlledAttributes(array $apiPlayer, Team $team, CarbonImmutable $syncedAt, ?Player $localPlayer = null): array
     {
         $attributes = [
             'name' => $apiPlayer['name'],
@@ -348,8 +349,12 @@ class PlayerSquadSyncService
             'provider_last_synced_at' => $syncedAt,
         ];
 
-        foreach (['position', 'shirt_number', 'nationality'] as $field) {
+        foreach (['position', 'shirt_number', 'nationality', 'provider_image_url'] as $field) {
             if ($apiPlayer[$field] !== null) {
+                if ($field === 'position' && filled($localPlayer?->position)
+                    && ! PlayerPositionFormatter::isKnown($localPlayer->position)) {
+                    continue;
+                }
                 $attributes[$field] = $apiPlayer[$field];
             }
         }
@@ -414,17 +419,11 @@ class PlayerSquadSyncService
             return ['value' => null, 'requires_manual_edit' => false];
         }
 
-        $localized = match (mb_strtolower($position, 'UTF-8')) {
-            'goalkeeper', 'keeper', 'kaleci' => 'Kaleci',
-            'defender', 'defence', 'defense', 'defans' => 'Defans',
-            'midfielder', 'midfield', 'orta saha' => 'Orta saha',
-            'attacker', 'forward', 'forvet' => null,
-            default => null,
-        };
+        $localized = PlayerPositionFormatter::format($position);
 
         return [
             'value' => $localized,
-            'requires_manual_edit' => $localized === null,
+            'requires_manual_edit' => ! PlayerPositionFormatter::isKnown($position),
         ];
     }
 

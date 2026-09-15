@@ -7,6 +7,7 @@ use App\Models\FootballMatch;
 use App\Models\FootballTeam;
 use App\Services\Football\LeagueStandingsService;
 use App\Services\Football\LiveFootballApiService;
+use App\Services\Football\MatchLineupPresenter;
 use App\Services\Football\MatchSupplementService;
 use App\Services\SeoService;
 use Illuminate\Http\JsonResponse;
@@ -52,6 +53,7 @@ class MatchController extends Controller
         SeoService $seoService,
         LeagueStandingsService $standingsService,
         MatchSupplementService $supplements,
+        MatchLineupPresenter $lineupPresenter,
     ): View {
         $footballMatch->load([
             'competition:id,name,display_name,provider,provider_league_id,is_active',
@@ -93,10 +95,11 @@ class MatchController extends Controller
             ],
             'h2h' => $supplements->headToHead($footballMatch),
             'injuries' => $supplements->injuries($footballMatch),
+            'presentedLineups' => $lineupPresenter->present($footballMatch->lineups),
         ]);
     }
 
-    public function state(FootballMatch $footballMatch): JsonResponse
+    public function state(FootballMatch $footballMatch, MatchLineupPresenter $lineupPresenter): JsonResponse
     {
         $match = FootballMatch::query()
             ->select([
@@ -107,7 +110,10 @@ class MatchController extends Controller
             ])
             ->findOrFail($footballMatch->id);
 
-        return response()->json($match->statePayload())
+        $payload = $match->statePayload();
+        $payload['lineups'] = $lineupPresenter->present($payload['lineups'] ?? null);
+
+        return response()->json($payload)
             ->header('Cache-Control', 'no-store, private');
     }
 }

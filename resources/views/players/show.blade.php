@@ -9,7 +9,7 @@
         <div class="player-hero-shade"></div>
         <div class="player-hero-content">
             <div class="player-profile-photo">
-                @if($player->photoUrl())<img src="{{ $player->photoUrl() }}" alt="{{ $player->name }} fotoğrafı" loading="eager" decoding="async">@else<span>{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}</span>@endif
+                @if($player->displayImageUrl())<img src="{{ $player->displayImageUrl() }}" alt="{{ $player->name }} fotoğrafı" loading="eager" decoding="async" onerror="this.remove(); this.nextElementSibling.style.display=''">@endif<span @if($player->displayImageUrl()) style="display:none" @endif>{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}</span>
             </div>
             <div class="player-profile-copy">
                 <div class="eyebrow">Oyuncu profili</div>
@@ -20,7 +20,7 @@
                     </div>
                 @endif
                 <div class="player-identity-line">
-                    @if($player->position)<span>{{ $player->position }}</span>@endif
+                    @if($player->position)<span>{{ $player->positionLabel() }}</span>@endif
                     @if($player->currentTeam)<span><x-team-logo :team="$player->currentTeam" size="xs" />{{ $player->currentTeam->name }}</span>@else<span>Serbest oyuncu</span>@endif
                     @if($player->nationality)<span>{{ $player->nationality }}</span>@endif
                     @if($player->national_team_name)<span>{{ $player->national_team_name }}</span>@endif
@@ -39,7 +39,7 @@
         @if($player->bio)<div class="player-bio"><h2>{{ $player->name }}</h2><p>{{ $player->bio }}</p></div>@endif
         <div class="player-facts">
             @if($player->currentTeam)<div><span>Takım</span><strong>{{ $player->currentTeam->name }}</strong></div>@endif
-            @if($player->position)<div><span>Pozisyon</span><strong>{{ $player->position }}</strong></div>@endif
+            @if($player->position)<div><span>Pozisyon</span><strong>{{ $player->positionLabel() }}</strong></div>@endif
             @if($player->shirt_number !== null)<div><span>Forma</span><strong>#{{ $player->shirt_number }}</strong></div>@endif
             @if($player->nationality)<div><span>Ülke / uyruk</span><strong>{{ $player->nationality }}</strong></div>@endif
             @if($player->national_team_name)<div><span>Milli takım</span><strong>{{ $player->national_team_name }}</strong></div>@endif

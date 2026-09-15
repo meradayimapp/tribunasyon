@@ -18,9 +18,9 @@
                 <a class="team-player-row" href="{{ route('players.show', $player) }}">
                     @if($player->shirt_number !== null)<span class="team-player-number">{{ $player->shirt_number }}</span>@else<span class="team-player-number" aria-hidden="true">—</span>@endif
                     <span class="team-player-avatar">
-                        @if($player->photoUrl())<img src="{{ $player->photoUrl() }}" alt="" loading="lazy" decoding="async">@else<span>{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}</span>@endif
+                        @if($player->displayImageUrl())<img src="{{ $player->displayImageUrl() }}" alt="" loading="lazy" decoding="async" onerror="this.remove(); this.nextElementSibling.style.display=''">@endif<span @if($player->displayImageUrl()) style="display:none" @endif>{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}</span>
                     </span>
-                    <span class="team-player-copy"><strong>{{ $player->name }}</strong>@if($player->position)<small>{{ $player->position }}</small>@endif</span>
+                    <span class="team-player-copy"><strong>{{ $player->name }}</strong>@if($player->position)<small>{{ $player->positionLabel() }}</small>@endif</span>
                     <x-ui.icon name="chevron-right" />
                 </a>
             @empty
