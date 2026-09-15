@@ -28,7 +28,7 @@ class CommunityPagesTest extends TestCase
         $this->get('/maclar')
             ->assertOk()
             ->assertSee('Bugünün maçları')
-            ->assertSee('Bugün takip edilen organizasyonlarda maç yok.')
+            ->assertSee('Takip edilen organizasyon bulunamadı.')
             ->assertDontSee('mock');
     }
 

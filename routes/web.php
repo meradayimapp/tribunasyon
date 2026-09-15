@@ -29,6 +29,7 @@ Route::get('/takim/{team}/puan-durumu', [TeamController::class, 'standings'])->n
 Route::get('/takim/{team}/oyuncular', [TeamController::class, 'players'])->name('teams.players');
 Route::get('/takim/{team}/gonderi/{post}', [PostController::class, 'show'])->scopeBindings()->name('posts.show');
 Route::get('/maclar', [MatchController::class, 'index'])->name('matches.index');
+Route::get('/maclar/bugun/state', [MatchController::class, 'todayState'])->name('matches.today.state');
 Route::get('/maclar/{footballMatch}', [MatchController::class, 'show'])->whereNumber('footballMatch')->name('matches.show');
 Route::get('/maclar/{footballMatch}/state', [MatchController::class, 'state'])->whereNumber('footballMatch')->name('matches.state');
 Route::get('/futbol/takimlar/{footballTeam}', FootballTeamController::class)->whereNumber('footballTeam')->name('football-teams.show');

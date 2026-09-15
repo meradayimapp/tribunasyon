@@ -1,22 +1,30 @@
 @props(['match', 'variant' => 'default'])
 
 @if($variant === 'featured')
-    <article class="featured-match-card">
+    <article @class(['featured-match-card', 'is-live' => $match->is_live])>
         <a class="featured-match-link" href="{{ route('matches.show', $match) }}" aria-label="{{ $match->homeTeam->resolved_name }} - {{ $match->awayTeam->resolved_name }} maçını aç">
-            <span class="featured-match-label"><x-ui.icon name="sparkle" /> Sonraki Maç</span>
+            @if($match->is_live)
+                <span class="featured-match-label featured-match-live-label"><i aria-hidden="true"></i> Canlı Maç</span>
+            @else
+                <span class="featured-match-label"><x-ui.icon name="sparkle" /> Sonraki Maç</span>
+            @endif
             <span class="featured-match-competition">{{ $match->competition->display_name ?: $match->competition->name }}</span>
             <span class="featured-match-teams">
                 <span class="featured-match-team">
                     @if($logo = $match->homeTeam->logoUrl())<img src="{{ $logo }}" alt="" loading="lazy" decoding="async">@else<span class="featured-match-logo-fallback">{{ mb_strtoupper(mb_substr($match->homeTeam->resolved_name, 0, 2)) }}</span>@endif
                     <strong>{{ $match->homeTeam->resolved_name }}</strong>
                 </span>
-                <span class="featured-match-kickoff"><strong>{{ $match->kickoffTime() }}</strong><time datetime="{{ $match->kickoffInDisplayTimezone()->toIso8601String() }}">{{ $match->kickoffInDisplayTimezone()->locale('tr')->translatedFormat('d F') }}</time><small>{{ $match->statusLabel() }}</small></span>
+                @if($match->is_live)
+                    <span class="featured-match-kickoff featured-match-live-score"><strong><span x-text="homeScore ?? '–'">{{ $match->home_score ?? '–' }}</span> <span>–</span> <span x-text="awayScore ?? '–'">{{ $match->away_score ?? '–' }}</span></strong><small x-text="heroStatus">{{ $match->isHalfTime() ? 'Devre Arası' : ($match->displayMinute() !== null ? $match->displayMinute().'′' : 'Canlı') }}</small></span>
+                @else
+                    <span class="featured-match-kickoff"><strong>{{ $match->kickoffTime() }}</strong><time datetime="{{ $match->kickoffInDisplayTimezone()->toIso8601String() }}">{{ $match->kickoffInDisplayTimezone()->locale('tr')->translatedFormat('d F') }}</time><small>{{ $match->statusLabel() }}</small></span>
+                @endif
                 <span class="featured-match-team featured-match-team-away">
                     @if($logo = $match->awayTeam->logoUrl())<img src="{{ $logo }}" alt="" loading="lazy" decoding="async">@else<span class="featured-match-logo-fallback">{{ mb_strtoupper(mb_substr($match->awayTeam->resolved_name, 0, 2)) }}</span>@endif
                     <strong>{{ $match->awayTeam->resolved_name }}</strong>
                 </span>
             </span>
-            <span class="featured-match-cta">Maç detayına git <x-ui.icon name="chevron-right" /></span>
+            <span class="featured-match-cta">{{ $match->is_live ? 'Maç Merkezine Git' : 'Maç detayına git' }} <x-ui.icon name="chevron-right" /></span>
         </a>
     </article>
 @elseif($variant === 'compact')
@@ -25,7 +33,7 @@
         $homeWinner = $finishedWithScore && $match->home_score > $match->away_score;
         $awayWinner = $finishedWithScore && $match->away_score > $match->home_score;
     @endphp
-    <article class="compact-match-card">
+    <article @class(['compact-match-card', 'is-live' => $match->is_live])>
         <a href="{{ route('matches.show', $match) }}" aria-label="{{ $match->homeTeam->resolved_name }} - {{ $match->awayTeam->resolved_name }} maçını aç">
             <time class="compact-match-date" datetime="{{ $match->kickoffInDisplayTimezone()->toIso8601String() }}">
                 <strong>{{ $match->kickoffInDisplayTimezone()->format('d') }}</strong>
@@ -44,22 +52,17 @@
             </span>
             <span class="compact-match-score">
                 @if($match->home_score === null && $match->away_score === null)<strong>{{ $match->kickoffTime() }}</strong>@else<strong>{{ $match->home_score ?? '–' }} - {{ $match->away_score ?? '–' }}</strong>@endif
-                <small>{{ strtolower($match->status) === 'finished' ? 'MS' : $match->statusLabel() }}</small>
+                <small>{{ $match->is_live ? ($match->isHalfTime() ? 'Devre' : 'Canlı'.($match->displayMinute() !== null ? ' · '.$match->displayMinute().'′' : '')) : ($match->isCompleted() ? 'MS' : $match->statusLabel()) }}</small>
             </span>
             <x-ui.icon name="chevron-right" />
         </a>
     </article>
 @else
     @php
-        $isFinished = strtolower($match->status) === 'finished';
-        $isScheduled = in_array(strtolower($match->status), ['scheduled', 'not_started'], true);
+        $isFinished = $match->isCompleted();
+        $isScheduled = $match->isScheduled();
         $liveMinute = $match->displayMinute();
-        $statusDisplay = mb_strtolower((string) $match->status_display);
-        $isHalfTime = $match->is_live && (
-            str_contains($statusDisplay, 'devre')
-            || str_contains($statusDisplay, 'half')
-            || in_array(mb_strtoupper((string) $match->status_display), ['HT', 'İY'], true)
-        );
+        $isHalfTime = $match->isHalfTime();
     @endphp
     <article @class(['match-card', 'is-live' => $match->is_live, 'is-finished' => $isFinished])>
         <a class="match-card-link" href="{{ route('matches.show', $match) }}" aria-label="{{ $match->homeTeam->resolved_name }} - {{ $match->awayTeam->resolved_name }} maçını aç"></a>

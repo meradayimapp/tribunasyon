@@ -30,7 +30,7 @@ class MatchesPageTest extends TestCase
             ]);
             $competition = FootballCompetition::create([
                 'provider' => 'live-football-api',
-                'provider_league_id' => 'league-1',
+                'provider_league_id' => FootballCompetition::SUPER_LEAGUE_PROVIDER_ID,
                 'name' => 'Provider League',
                 'display_name' => 'Süper Lig',
                 'slug' => 'super-lig',
@@ -105,7 +105,7 @@ class MatchesPageTest extends TestCase
 
         try {
             $competition = FootballCompetition::create([
-                'provider' => 'live-football-api', 'provider_league_id' => 'league-time',
+                'provider' => 'live-football-api', 'provider_league_id' => FootballCompetition::SUPER_LEAGUE_PROVIDER_ID,
                 'name' => 'Lig', 'slug' => 'lig-time', 'is_active' => true,
             ]);
             $home = FootballTeam::create([

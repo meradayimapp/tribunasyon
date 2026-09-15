@@ -11,7 +11,7 @@ class FootballCompetitionSeeder extends Seeder
     {
         $competitions = [
             [
-                'provider_league_id' => '482ofyysbdbeoxauk19yg7tdt',
+                'provider_league_id' => FootballCompetition::SUPER_LEAGUE_PROVIDER_ID,
                 'name' => 'Trendyol Süper Lig',
                 'display_name' => 'Trendyol Süper Lig',
                 'slug' => 'super-lig',
@@ -19,7 +19,7 @@ class FootballCompetitionSeeder extends Seeder
                 'sort_order' => 10,
             ],
             [
-                'provider_league_id' => '4oogyu6o156iphvdvphwpck10',
+                'provider_league_id' => FootballCompetition::CHAMPIONS_LEAGUE_PROVIDER_ID,
                 'name' => 'UEFA Champions League',
                 'display_name' => 'Şampiyonlar Ligi',
                 'slug' => 'sampiyonlar-ligi',
@@ -27,7 +27,7 @@ class FootballCompetitionSeeder extends Seeder
                 'sort_order' => 20,
             ],
             [
-                'provider_league_id' => '4c1nfi2j1m731hcay25fcgndq',
+                'provider_league_id' => FootballCompetition::EUROPA_LEAGUE_PROVIDER_ID,
                 'name' => 'UEFA Europa League',
                 'display_name' => 'Avrupa Ligi',
                 'slug' => 'avrupa-ligi',
@@ -35,7 +35,7 @@ class FootballCompetitionSeeder extends Seeder
                 'sort_order' => 30,
             ],
             [
-                'provider_league_id' => 'c7b8o53flg36wbuevfzy3lb10',
+                'provider_league_id' => FootballCompetition::CONFERENCE_LEAGUE_PROVIDER_ID,
                 'name' => 'UEFA Conference League',
                 'display_name' => 'Konferans Ligi',
                 'slug' => 'konferans-ligi',

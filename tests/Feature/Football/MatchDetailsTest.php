@@ -66,11 +66,16 @@ class MatchDetailsTest extends TestCase
         $this->getJson(route('matches.state', $match))
             ->assertOk()
             ->assertExactJson([
-                'status' => 'live', 'is_live' => true, 'is_finished' => false,
+                'status' => 'live', 'is_live' => true, 'is_half_time' => false, 'is_finished' => false,
                 'score' => ['home' => 1, 'away' => 0], 'minute' => 37,
                 'status_display' => 'CANLI', 'events' => [], 'updated_at' => null,
             ]);
         Http::assertNothingSent();
+
+        $match->update(['status_display' => 'HT']);
+        $this->getJson(route('matches.state', $match))
+            ->assertOk()
+            ->assertJsonPath('is_half_time', true);
 
         $match->update(['status' => 'finished', 'status_display' => 'Bitti', 'is_live' => false, 'home_score' => 2, 'away_score' => 1]);
         $this->getJson(route('matches.state', $match))

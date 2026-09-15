@@ -215,6 +215,7 @@ window.matchLiveState = (url, initial) => ({
     timer: null,
     activePanel: null,
     isLive: Boolean(initial.is_live),
+    isHalfTime: Boolean(initial.is_half_time),
     isFinished: Boolean(initial.is_finished),
     status: initial.status,
     homeScore: initial.score?.home ?? null,
@@ -233,10 +234,7 @@ window.matchLiveState = (url, initial) => ({
         }
 
         if (this.isLive) {
-            const status = String(this.statusDisplay ?? '').toLocaleLowerCase('tr-TR');
-            const isHalfTime = status.includes('devre') || status.includes('half') || ['ht', 'iy', 'i̇y'].includes(status);
-
-            return isHalfTime ? 'Devre Arası' : 'Canlı';
+            return this.isHalfTime ? 'Devre Arası' : 'Canlı';
         }
 
         if (['scheduled', 'not_started'].includes(this.status)) {
@@ -289,6 +287,7 @@ window.matchLiveState = (url, initial) => ({
             if (!response.ok) return;
             const state = await response.json();
             this.isLive = Boolean(state.is_live);
+            this.isHalfTime = Boolean(state.is_half_time);
             this.isFinished = Boolean(state.is_finished);
             this.status = state.status;
             this.homeScore = state.score?.home ?? null;
@@ -358,5 +357,192 @@ window.matchLiveState = (url, initial) => ({
         });
 
         list.replaceChildren(...rows);
+    },
+});
+
+window.todayScoresRibbon = (url, initialMatches, pollingEnabled = false) => ({
+    url,
+    matches: Array.isArray(initialMatches) ? initialMatches : [],
+    pollingEnabled: Boolean(pollingEnabled),
+    timer: null,
+
+    init() {
+        if (this.pollingEnabled && this.hasLiveMatches && !document.hidden) {
+            this.start();
+        }
+    },
+
+    destroy() {
+        this.stop();
+    },
+
+    get hasLiveMatches() {
+        return this.matches.some((match) => Boolean(match.is_live));
+    },
+
+    shortName(value) {
+        const name = String(value ?? '').trim();
+
+        if (name.length <= 5) return name.toLocaleUpperCase('tr-TR');
+
+        const words = name.split(/\s+/).filter(Boolean);
+
+        if (words.length > 1) {
+            return words.map((word) => word[0]).join('').slice(0, 4).toLocaleUpperCase('tr-TR');
+        }
+
+        return name.slice(0, 4).toLocaleUpperCase('tr-TR');
+    },
+
+    centerText(match) {
+        if (match.is_live || match.is_finished || match.home_score !== null || match.away_score !== null) {
+            return `${match.home_score ?? '–'} – ${match.away_score ?? '–'}`;
+        }
+
+        return match.kickoff_time;
+    },
+
+    cardStatus(match) {
+        if (!match.is_live || match.status_label === 'DEVRE') return match.status_label;
+
+        return match.status_label === 'CANLI' ? 'CANLI' : `CANLI ${match.status_label}`;
+    },
+
+    visibilityChanged() {
+        if (document.hidden) {
+            this.stop();
+        } else if (this.pollingEnabled && this.hasLiveMatches) {
+            this.refresh();
+            this.start();
+        }
+    },
+
+    start() {
+        if (this.timer || !this.pollingEnabled || !this.hasLiveMatches || document.hidden) return;
+        this.timer = window.setInterval(() => this.refresh(), 30000);
+    },
+
+    stop() {
+        if (this.timer) window.clearInterval(this.timer);
+        this.timer = null;
+    },
+
+    async refresh() {
+        if (document.hidden || !this.pollingEnabled || !this.hasLiveMatches) return;
+
+        try {
+            const response = await fetch(this.url, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+                cache: 'no-store',
+            });
+
+            if (!response.ok) return;
+
+            const payload = await response.json();
+            this.matches = Array.isArray(payload.matches) ? payload.matches : this.matches;
+            window.dispatchEvent(new CustomEvent('today-scores-updated', { detail: { matches: this.matches } }));
+
+            if (!this.hasLiveMatches) this.stop();
+        } catch (error) {
+            // Keep the latest database-backed state visible during transient failures.
+        }
+    },
+});
+
+window.liveFixtureHero = (matchId, stateUrl, initial) => ({
+    matchId,
+    stateUrl,
+    timer: null,
+    reloading: false,
+    ribbonCoverageLost: false,
+    homeScore: initial.home_score ?? null,
+    awayScore: initial.away_score ?? null,
+    heroStatus: initial.status_label ?? 'Canlı',
+
+    init() {
+        if (!this.coveredByRibbon() && !document.hidden) this.start();
+    },
+
+    destroy() {
+        this.stop();
+    },
+
+    coveredByRibbon() {
+        if (this.ribbonCoverageLost) return false;
+        const ribbon = document.querySelector('.today-scores-ribbon[data-polling="on"]');
+
+        return Boolean(ribbon?.dataset.matchIds?.split(',').includes(String(this.matchId)));
+    },
+
+    onScoresUpdated(matches) {
+        const match = Array.isArray(matches) ? matches.find((item) => item.id === this.matchId) : null;
+
+        if (!match) {
+            this.ribbonCoverageLost = true;
+            this.start();
+            return;
+        }
+
+        if (!match.is_live) {
+            this.reload();
+            return;
+        }
+
+        this.homeScore = match.home_score;
+        this.awayScore = match.away_score;
+        this.heroStatus = match.status_label === 'DEVRE' ? 'Devre Arası' : match.status_label;
+    },
+
+    visibilityChanged() {
+        if (document.hidden) {
+            this.stop();
+        } else if (!this.coveredByRibbon()) {
+            this.refresh();
+            this.start();
+        }
+    },
+
+    start() {
+        if (this.timer || this.reloading || document.hidden) return;
+        this.timer = window.setInterval(() => this.refresh(), 30000);
+    },
+
+    stop() {
+        if (this.timer) window.clearInterval(this.timer);
+        this.timer = null;
+    },
+
+    reload() {
+        if (this.reloading) return;
+        this.reloading = true;
+        this.stop();
+        window.location.reload();
+    },
+
+    async refresh() {
+        if (document.hidden || this.reloading) return;
+
+        try {
+            const response = await fetch(this.stateUrl, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+                cache: 'no-store',
+            });
+
+            if (!response.ok) return;
+            const state = await response.json();
+            if (!state.is_live) {
+                this.reload();
+                return;
+            }
+
+            this.homeScore = state.score?.home ?? null;
+            this.awayScore = state.score?.away ?? null;
+            const label = String(state.status_display ?? 'Canlı');
+            this.heroStatus = state.is_half_time ? 'Devre Arası' : (state.minute !== null ? `${state.minute}′` : label);
+        } catch (error) {
+            // Leave the existing hero visible until the database is available again.
+        }
     },
 });

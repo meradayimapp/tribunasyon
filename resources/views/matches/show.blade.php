@@ -10,12 +10,7 @@
     $hasStats = filled($match->match_stats);
     $hasEvents = filled($match->live_events);
     $showDetails = $match->is_live || $hasEvents || $hasStats || $hasLineups;
-    $statusDisplay = mb_strtolower((string) $match->status_display);
-    $isHalfTime = $match->is_live && (
-        str_contains($statusDisplay, 'devre')
-        || str_contains($statusDisplay, 'half')
-        || in_array(mb_strtoupper((string) $match->status_display), ['HT', 'İY'], true)
-    );
+    $isHalfTime = $match->isHalfTime();
     $initialCenterStatus = $match->isFinished()
         ? 'Bitti'
         : ($match->is_live ? ($isHalfTime ? 'Devre Arası' : 'Canlı') : $match->statusLabel());

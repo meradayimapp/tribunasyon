@@ -158,6 +158,101 @@ class TeamProfileTabsTest extends TestCase
             ->assertDontSee('İptal Rakip');
     }
 
+    public function test_live_match_has_priority_over_the_next_match_in_fixture_hero(): void
+    {
+        $team = $this->team();
+        $competition = $this->competition();
+        $linked = $this->footballTeam('Bağlı', $team);
+        $liveOpponent = $this->footballTeam('Canlı Rakip');
+        $futureOpponent = $this->footballTeam('Sonraki Rakip');
+        $live = $this->match($competition, $liveOpponent, $linked, [
+            'provider_match_id' => 'live-priority',
+            'kickoff_at' => '2026-09-09 10:00:00',
+            'status' => 'live',
+            'status_display' => "27'",
+            'is_live' => true,
+            'home_score' => 0,
+            'away_score' => 0,
+            'live_minute' => 27,
+        ]);
+        $future = $this->match($competition, $linked, $futureOpponent, [
+            'provider_match_id' => 'next-after-live',
+            'kickoff_at' => '2026-09-10 18:00:00',
+        ]);
+
+        $response = $this->get(route('teams.fixtures', $team))
+            ->assertOk()
+            ->assertSee('Canlı Maç')
+            ->assertSee('x-text="homeScore ??', false)
+            ->assertSee('x-text="awayScore ??', false)
+            ->assertSee('27′')
+            ->assertSee('Maç Merkezine Git')
+            ->assertSee(route('matches.show', $live), false)
+            ->assertSee(route('matches.show', $future), false)
+            ->assertDontSee('Sonraki Maç');
+
+        $this->assertLessThan(
+            strpos($response->getContent(), 'Sonraki Rakip'),
+            strpos($response->getContent(), 'Canlı Rakip'),
+        );
+    }
+
+    public function test_finished_live_match_leaves_hero_and_moves_to_results(): void
+    {
+        $team = $this->team();
+        $competition = $this->competition();
+        $linked = $this->footballTeam('Bağlı', $team);
+        $liveOpponent = $this->footballTeam('Biten Canlı Rakip');
+        $futureOpponent = $this->footballTeam('Yeni Sıradaki Rakip');
+        $live = $this->match($competition, $liveOpponent, $linked, [
+            'provider_match_id' => 'finishing-live',
+            'kickoff_at' => '2026-09-09 10:00:00',
+            'status' => 'live',
+            'is_live' => true,
+            'home_score' => 1,
+            'away_score' => 2,
+        ]);
+        $this->match($competition, $linked, $futureOpponent, ['provider_match_id' => 'new-next']);
+
+        $live->update(['status' => 'finished', 'status_display' => 'Bitti', 'is_live' => false]);
+
+        $this->get(route('teams.fixtures', $team))
+            ->assertOk()
+            ->assertSee('Sonraki Maç')
+            ->assertSee('Yeni Sıradaki Rakip')
+            ->assertDontSee('Biten Canlı Rakip');
+
+        $this->get(route('teams.fixtures', ['team' => $team, 'view' => 'results']))
+            ->assertOk()
+            ->assertSee('Biten Canlı Rakip')
+            ->assertSee('1 - 2')
+            ->assertDontSee('Yeni Sıradaki Rakip');
+    }
+
+    public function test_competition_filter_limits_the_live_fixture_hero(): void
+    {
+        $team = $this->team();
+        $league = $this->competition(['provider_league_id' => 'league-live', 'slug' => 'league-live']);
+        $europe = $this->competition(['provider_league_id' => 'europe-next', 'name' => 'Avrupa', 'display_name' => 'Avrupa', 'slug' => 'europe-next']);
+        $linked = $this->footballTeam('Bağlı', $team);
+        $leagueOpponent = $this->footballTeam('Lig Canlı Rakibi');
+        $europeOpponent = $this->footballTeam('Avrupa Sıradaki Rakibi');
+        $this->match($league, $leagueOpponent, $linked, [
+            'provider_match_id' => 'league-live-filter',
+            'kickoff_at' => '2026-09-09 10:00:00',
+            'status' => 'live',
+            'is_live' => true,
+        ]);
+        $this->match($europe, $linked, $europeOpponent, ['provider_match_id' => 'europe-future-filter']);
+
+        $this->get(route('teams.fixtures', ['team' => $team, 'competition' => $europe->id]))
+            ->assertOk()
+            ->assertSee('Sonraki Maç')
+            ->assertSee('Avrupa Sıradaki Rakibi')
+            ->assertDontSee('Lig Canlı Rakibi')
+            ->assertDontSee('Canlı Maç');
+    }
+
     public function test_fixture_kickoff_is_rendered_only_in_istanbul_time_and_cards_link_to_match_details(): void
     {
         $team = $this->team();

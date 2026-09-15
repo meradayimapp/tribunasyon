@@ -2,21 +2,61 @@
 @section('title', 'Maçlar')
 @section('mobile-title', 'Maçlar')
 @section('content')
-<div class="feed-column mx-auto">
+<div class="feed-column matches-today-page mx-auto">
     <div class="page-head">
         <div class="eyebrow">Maç merkezi</div>
         <h1 class="page-title mb-1">Bugünün maçları</h1>
-        <p class="muted mb-4">{{ $date->translatedFormat('d F Y, l') }}</p>
+        <p class="muted mb-3">{{ $date->locale('tr')->translatedFormat('d F Y, l') }}</p>
     </div>
 
-    @forelse($matches as $match)
-        <x-football-match-card :match="$match" />
-    @empty
+    <nav class="matches-competition-tabs" aria-label="Organizasyonlar">
+        @foreach($competitions as $competition)
+            <a
+                href="{{ route('matches.index', ['competition' => $competition->provider_league_id]) }}"
+                @class(['active' => $selectedCompetition?->is($competition)])
+                @if($selectedCompetition?->is($competition)) aria-current="page" @endif
+            >{{ $competition->display_name ?: $competition->name }}</a>
+        @endforeach
+    </nav>
+
+    @if($selectedCompetition === null)
         <div class="empty-state mx-3 mx-md-0">
             <x-ui.icon name="calendar" />
-            <strong>Bugün takip edilen organizasyonlarda maç yok.</strong>
-            <p>Fikstür verileri son senkronizasyondan sonra burada görünür.</p>
+            <strong>Takip edilen organizasyon bulunamadı.</strong>
         </div>
-    @endforelse
+    @elseif($liveMatches->isEmpty() && $upcomingMatches->isEmpty() && $finishedMatches->isEmpty())
+        <div class="empty-state mx-3 mx-md-0">
+            <x-ui.icon name="calendar" />
+            <strong>Bugün bu organizasyonda maç bulunmuyor.</strong>
+            <p>Başka bir organizasyon seçerek günün programına bakabilirsin.</p>
+        </div>
+    @else
+        @if($liveMatches->isNotEmpty())
+            <section class="today-match-group" aria-labelledby="today-live-title">
+                <h2 id="today-live-title" class="today-match-group-title is-live"><i aria-hidden="true"></i> Canlı</h2>
+                @foreach($liveMatches as $match)
+                    <x-football-match-card :match="$match" />
+                @endforeach
+            </section>
+        @endif
+
+        @if($upcomingMatches->isNotEmpty())
+            <section class="today-match-group" aria-labelledby="today-upcoming-title">
+                <h2 id="today-upcoming-title" class="today-match-group-title">Bugün</h2>
+                @foreach($upcomingMatches as $match)
+                    <x-football-match-card :match="$match" />
+                @endforeach
+            </section>
+        @endif
+
+        @if($finishedMatches->isNotEmpty())
+            <section class="today-match-group" aria-labelledby="today-finished-title">
+                <h2 id="today-finished-title" class="today-match-group-title">Bitti</h2>
+                @foreach($finishedMatches as $match)
+                    <x-football-match-card :match="$match" />
+                @endforeach
+            </section>
+        @endif
+    @endif
 </div>
 @endsection

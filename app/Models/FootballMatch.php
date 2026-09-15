@@ -109,6 +109,16 @@ class FootballMatch extends Model
             ->whereHas('awayTeam', $activeFootballTeam);
     }
 
+    public function scopeLive(Builder $query): Builder
+    {
+        return $query->where('is_live', true);
+    }
+
+    public function scopeCompleted(Builder $query): Builder
+    {
+        return $query->where('status', 'finished');
+    }
+
     public function isIndexable(): bool
     {
         $linkedTeamIsActive = static fn ($footballTeam): bool => $footballTeam->is_active
@@ -138,6 +148,46 @@ class FootballMatch extends Model
         return in_array(strtolower($this->status), self::TERMINAL_STATUSES, true);
     }
 
+    public function isCompleted(): bool
+    {
+        return strtolower($this->status) === 'finished';
+    }
+
+    public function isScheduled(): bool
+    {
+        return in_array(strtolower($this->status), ['scheduled', 'not_started'], true);
+    }
+
+    public function isHalfTime(): bool
+    {
+        if (! $this->is_live) {
+            return false;
+        }
+
+        $status = mb_strtolower((string) $this->status_display);
+
+        return str_contains($status, 'devre')
+            || str_contains($status, 'half')
+            || in_array(mb_strtoupper((string) $this->status_display), ['HT', 'İY'], true);
+    }
+
+    public function scoreRibbonStatus(): string
+    {
+        if ($this->is_live) {
+            return $this->isHalfTime() ? 'DEVRE' : ($this->displayMinute() !== null ? $this->displayMinute().'′' : 'CANLI');
+        }
+
+        if ($this->isCompleted()) {
+            return 'MS';
+        }
+
+        if ($this->isScheduled()) {
+            return 'BUGÜN';
+        }
+
+        return mb_strtoupper($this->statusLabel());
+    }
+
     public function displayMinute(): ?int
     {
         if ($this->live_minute !== null) {
@@ -156,6 +206,7 @@ class FootballMatch extends Model
         return [
             'status' => $this->status,
             'is_live' => $this->is_live,
+            'is_half_time' => $this->isHalfTime(),
             'is_finished' => $this->isFinished(),
             'score' => ['home' => $this->home_score, 'away' => $this->away_score],
             'minute' => $this->displayMinute(),

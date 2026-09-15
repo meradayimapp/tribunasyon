@@ -58,14 +58,19 @@ class TeamController extends Controller
 
             if ($view === 'results') {
                 $matches = $this->teamMatches($footballTeamIds->all(), $selectedCompetitionId)
-                    ->where('status', 'finished')
+                    ->completed()
                     ->latest('kickoff_at')
                     ->limit(15)
                     ->get();
             } else {
                 $upcoming = fn (): Builder => $this->teamMatches($footballTeamIds->all(), $selectedCompetitionId)
-                    ->where('kickoff_at', '>=', $now)
-                    ->whereNotIn('status', FootballMatch::TERMINAL_STATUSES)
+                    ->where(fn (Builder $query): Builder => $query
+                        ->live()
+                        ->orWhere(fn (Builder $future): Builder => $future
+                            ->where('is_live', false)
+                            ->where('kickoff_at', '>=', $now)
+                            ->whereNotIn('status', FootballMatch::TERMINAL_STATUSES)))
+                    ->orderByDesc('is_live')
                     ->orderBy('kickoff_at');
 
                 $nextMatch = $upcoming()->first();
