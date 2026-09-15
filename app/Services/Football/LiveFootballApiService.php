@@ -119,6 +119,46 @@ class LiveFootballApiService
         return $data;
     }
 
+    public function headToHead(string $matchId): array
+    {
+        $matchId = trim($matchId);
+
+        if ($matchId === '') {
+            throw new LiveFootballApiException('Maç kimliği boş olamaz.');
+        }
+
+        $data = $this->get('h2h', ['match_id' => $matchId], retry: false);
+
+        if ((string) ($data['match_id'] ?? '') !== $matchId
+            || ! is_array($data['h2h'] ?? null)
+            || ! is_array($data['home_form'] ?? null)
+            || ! is_array($data['away_form'] ?? null)) {
+            throw new LiveFootballApiException('H2H yanıtı beklenen veri yapısında değil.');
+        }
+
+        return $data;
+    }
+
+    public function injuries(string $matchId): array
+    {
+        $matchId = trim($matchId);
+
+        if ($matchId === '') {
+            throw new LiveFootballApiException('Maç kimliği boş olamaz.');
+        }
+
+        $data = $this->get('injuries', ['match_id' => $matchId], retry: false);
+
+        if ((string) ($data['match_id'] ?? '') !== $matchId
+            || ! is_array($data['injuries'] ?? null)
+            || ! is_array($data['injuries']['home'] ?? null)
+            || ! is_array($data['injuries']['away'] ?? null)) {
+            throw new LiveFootballApiException('Sakatlık yanıtı beklenen veri yapısında değil.');
+        }
+
+        return $data;
+    }
+
     public function teamSquad(string $teamId): array
     {
         $teamId = trim($teamId);

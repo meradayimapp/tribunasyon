@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Contracts\FootballDataService;
 use App\Models\FootballMatch;
+use App\Models\FootballTeam;
+use App\Services\Football\LeagueStandingsService;
+use App\Services\Football\LiveFootballApiService;
+use App\Services\Football\MatchSupplementService;
 use App\Services\SeoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,15 +47,53 @@ class MatchController extends Controller
             ->header('Cache-Control', 'no-store, private');
     }
 
-    public function show(FootballMatch $footballMatch, SeoService $seoService): View
-    {
+    public function show(
+        FootballMatch $footballMatch,
+        SeoService $seoService,
+        LeagueStandingsService $standingsService,
+        MatchSupplementService $supplements,
+    ): View {
         $footballMatch->load([
-            'competition:id,name,display_name,is_active',
+            'competition:id,name,display_name,provider,provider_league_id,is_active',
             'homeTeam.team:id,name,slug,logo,primary_color,status,deleted_at',
             'awayTeam.team:id,name,slug,logo,primary_color,status,deleted_at',
         ]);
 
-        return view('matches.show', ['match' => $footballMatch, 'seo' => $seoService->match($footballMatch)]);
+        $leagueId = $footballMatch->competition?->provider === LiveFootballApiService::PROVIDER
+            ? $footballMatch->competition->provider_league_id : null;
+        $standings = filled($leagueId) ? $standingsService->forLeague($leagueId) : null;
+        $tables = collect($standings['tables'] ?? [])
+            ->filter(fn (mixed $table): bool => is_array($table) && ($table['rows'] ?? []) !== [])
+            ->values();
+        $teamIds = $tables->flatMap(fn (array $table): array => $table['rows'])
+            ->pluck('provider_team_id')->unique()->values();
+        $localTeams = $teamIds->isEmpty() ? collect() : FootballTeam::query()
+            ->where('provider', LiveFootballApiService::PROVIDER)
+            ->where('is_active', true)
+            ->whereIn('provider_team_id', $teamIds)
+            ->whereHas('team', fn ($query) => $query->active())
+            ->with('team:id,name,slug,logo')
+            ->get(['id', 'provider_team_id', 'team_id'])
+            ->mapWithKeys(fn (FootballTeam $team): array => [
+                $team->provider_team_id => [
+                    'logo' => $team->team->logoUrl(),
+                    'url' => route('teams.show', $team->team),
+                ],
+            ]);
+
+        return view('matches.show', [
+            'match' => $footballMatch,
+            'seo' => $seoService->match($footballMatch),
+            'tables' => $tables,
+            'standingsSeason' => $standings['season'] ?? null,
+            'localTeams' => $localTeams,
+            'currentProviderTeamIds' => [
+                $footballMatch->homeTeam->provider_team_id,
+                $footballMatch->awayTeam->provider_team_id,
+            ],
+            'h2h' => $supplements->headToHead($footballMatch),
+            'injuries' => $supplements->injuries($footballMatch),
+        ]);
     }
 
     public function state(FootballMatch $footballMatch): JsonResponse
@@ -61,6 +103,7 @@ class MatchController extends Controller
                 'id', 'status', 'state', 'status_display', 'is_live',
                 'home_score', 'away_score', 'live_minute', 'last_synced_at',
                 'live_events', 'live_details_synced_at',
+                'match_stats', 'lineups', 'lineup_is_projected', 'lineup_synced_at',
             ])
             ->findOrFail($footballMatch->id);
 

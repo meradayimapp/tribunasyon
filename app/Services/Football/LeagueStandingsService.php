@@ -25,6 +25,7 @@ class LeagueStandingsService
 
         $cacheKey = $this->cacheKey($leagueId, $season);
         $staleKey = $cacheKey.':stale';
+        $errorKey = $cacheKey.':error';
         $cached = $this->cached($cacheKey);
 
         if ($cached !== null) {
@@ -34,6 +35,14 @@ class LeagueStandingsService
         $stale = $this->cached($staleKey);
 
         try {
+            if (Cache::get($errorKey) === true) {
+                return $stale;
+            }
+        } catch (Throwable) {
+            // A cache outage must not break the standings page.
+        }
+
+        try {
             $standings = $this->normalize($this->api->leagueStandings($leagueId, $season));
         } catch (Throwable $exception) {
             Log::warning('Lig puan durumu alınamadı.', [
@@ -41,12 +50,19 @@ class LeagueStandingsService
                 'exception' => $exception::class,
             ]);
 
+            try {
+                Cache::put($errorKey, true, now()->addMinutes(5));
+            } catch (Throwable) {
+                // Keep the existing stale-data fallback even when cache is unavailable.
+            }
+
             return $stale;
         }
 
         try {
             Cache::put($cacheKey, $standings, now()->addMinutes(self::CACHE_MINUTES));
             Cache::put($staleKey, $standings, now()->addHours(self::STALE_HOURS));
+            Cache::forget($errorKey);
         } catch (Throwable $exception) {
             Log::warning('Lig puan durumu cache içine yazılamadı.', [
                 'league_id' => $leagueId,

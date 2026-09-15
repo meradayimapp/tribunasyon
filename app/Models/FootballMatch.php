@@ -203,6 +203,18 @@ class FootballMatch extends Model
 
     public function statePayload(): array
     {
+        $lineups = is_array($this->lineups) ? $this->lineups : [];
+        if ($lineups !== []) {
+            foreach (['home', 'away'] as $side) {
+                $team = is_array($lineups[$side] ?? null) ? $lineups[$side] : [];
+                foreach (['starting', 'subs'] as $group) {
+                    $players = is_array($team[$group] ?? null) ? $team[$group] : [];
+                    $team[$group] = array_values(array_filter($players, 'is_array'));
+                }
+                $lineups[$side] = $team;
+            }
+        }
+
         return [
             'status' => $this->status,
             'is_live' => $this->is_live,
@@ -211,7 +223,11 @@ class FootballMatch extends Model
             'score' => ['home' => $this->home_score, 'away' => $this->away_score],
             'minute' => $this->displayMinute(),
             'status_display' => $this->stateStatusLabel(),
-            'events' => $this->live_events ?? [],
+            'events' => is_array($this->live_events) ? array_values(array_filter($this->live_events, 'is_array')) : [],
+            'stats' => is_array($this->match_stats) ? array_values(array_filter($this->match_stats, 'is_array')) : [],
+            'lineups' => $lineups,
+            'lineup_is_projected' => $this->lineup_is_projected,
+            'lineup_updated_at' => $this->lineup_synced_at?->toIso8601String(),
             'updated_at' => ($this->live_details_synced_at ?? $this->last_synced_at)?->toIso8601String(),
         ];
     }

@@ -210,10 +210,12 @@ window.playerChatScroll = () => ({
     },
 });
 
-window.matchLiveState = (url, initial) => ({
+window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
     url,
     timer: null,
-    activePanel: null,
+    activeTab: defaultTab,
+    lineupSide: 'home',
+    tabs: ['sohbet', 'ozet', 'istatistik', 'kadro', 'puan-durumu', 'h2h'],
     isLive: Boolean(initial.is_live),
     isHalfTime: Boolean(initial.is_half_time),
     isFinished: Boolean(initial.is_finished),
@@ -223,9 +225,17 @@ window.matchLiveState = (url, initial) => ({
     minute: initial.minute ?? null,
     statusDisplay: initial.status_display,
     events: Array.isArray(initial.events) ? initial.events : [],
+    stats: Array.isArray(initial.stats) ? initial.stats : [],
+    lineups: initial.lineups && typeof initial.lineups === 'object' ? initial.lineups : {},
+    lineupIsProjected: Boolean(initial.lineup_is_projected),
+    lineupUpdatedAt: initial.lineup_updated_at ?? null,
 
     get scoreKnown() {
         return this.homeScore !== null || this.awayScore !== null;
+    },
+
+    get hasLineups() {
+        return ['home', 'away'].some((side) => Array.isArray(this.lineups?.[side]?.starting) && this.lineups[side].starting.length > 0);
     },
 
     get centerStatus() {
@@ -244,15 +254,34 @@ window.matchLiveState = (url, initial) => ({
         return this.statusDisplay;
     },
 
-    togglePanel(panel) {
-        this.activePanel = this.activePanel === panel ? null : panel;
+    selectTab(tab, updateHistory = true) {
+        if (!this.tabs.includes(tab)) return;
+        this.activeTab = tab;
+        if (updateHistory && window.location.hash !== `#${tab}`) window.history.pushState(null, '', `#${tab}`);
+        this.$nextTick(() => document.getElementById(`match-tab-${tab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
     },
 
-    closePanel() {
-        this.activePanel = null;
+    hashChanged() {
+        try {
+            const hash = decodeURIComponent(window.location.hash.slice(1));
+            if (this.tabs.includes(hash)) this.selectTab(hash, false);
+        } catch (error) {
+            // Ignore malformed fragments and keep the match-state default tab.
+        }
+    },
+
+    tabKeydown(event) {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const index = this.tabs.indexOf(this.activeTab);
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? this.tabs.length - 1
+            : (index + (event.key === 'ArrowRight' ? 1 : -1) + this.tabs.length) % this.tabs.length;
+        this.selectTab(this.tabs[next]);
+        this.$nextTick(() => document.getElementById(`match-tab-${this.tabs[next]}`)?.focus());
     },
 
     init() {
+        this.hashChanged();
         if (this.isLive && !document.hidden) this.start();
     },
 
@@ -295,7 +324,16 @@ window.matchLiveState = (url, initial) => ({
             this.minute = state.minute ?? null;
             this.statusDisplay = state.status_display;
             this.events = Array.isArray(state.events) ? state.events : [];
-            this.$nextTick(() => this.renderEvents());
+            this.stats = Array.isArray(state.stats) ? state.stats : [];
+            const lineupChanged = state.lineup_updated_at !== this.lineupUpdatedAt;
+            this.lineups = state.lineups && typeof state.lineups === 'object' ? state.lineups : {};
+            this.lineupIsProjected = Boolean(state.lineup_is_projected);
+            this.lineupUpdatedAt = state.lineup_updated_at ?? null;
+            this.$nextTick(() => {
+                this.renderEvents();
+                this.renderStats();
+                if (lineupChanged) this.renderLineups();
+            });
             if (!this.isLive || this.isFinished) this.stop();
         } catch (error) {
             // Keep the last database-backed state visible during transient failures.
@@ -309,7 +347,7 @@ window.matchLiveState = (url, initial) => ({
 
         const rows = this.events.map((event) => {
             const side = ['home', 'away'].includes(event.side) ? event.side : 'neutral';
-            const type = ['goal', 'yellow_card', 'red_card', 'substitution'].includes(event.type) ? event.type : 'event';
+            const type = ['goal', 'penalty_goal', 'yellow_card', 'red_card', 'second_yellow', 'substitution'].includes(event.type) ? event.type : 'event';
             const row = document.createElement('article');
             row.className = `match-event side-${side}`;
             row.dataset.eventType = type;
@@ -357,6 +395,118 @@ window.matchLiveState = (url, initial) => ({
         });
 
         list.replaceChildren(...rows);
+    },
+
+    renderStats() {
+        const list = this.$refs.statsList;
+        if (!list) return;
+        const rows = this.stats.filter((stat) => stat && typeof stat === 'object').map((stat) => {
+            const row = document.createElement('div');
+            row.className = 'match-statistic';
+            let share = Number(stat.home_share);
+            if (!Number.isFinite(share)) {
+                const number = (value) => Number(String(value ?? '').match(/\d+(?:[.,]\d+)?/)?.[0]?.replace(',', '.') ?? 0);
+                const home = number(stat.home), away = number(stat.away);
+                share = home + away > 0 ? 100 * home / (home + away) : 50;
+            }
+            share = Math.max(0, Math.min(100, share));
+            row.style.setProperty('--home-share', `${share}%`);
+            row.style.setProperty('--away-share', `${100 - share}%`);
+            const values = document.createElement('div');
+            values.className = 'match-statistic-values';
+            ['home', 'label', 'away'].forEach((key) => {
+                const node = document.createElement(key === 'label' ? 'span' : 'strong');
+                node.textContent = String(stat[key] ?? (key === 'label' ? 'İstatistik' : '–'));
+                values.append(node);
+            });
+            const track = document.createElement('div');
+            track.className = 'match-statistic-track';
+            track.setAttribute('aria-hidden', 'true');
+            ['home', 'away'].forEach((side) => {
+                const bar = document.createElement('i');
+                bar.className = side;
+                track.append(bar);
+            });
+            row.append(values, track);
+            return row;
+        });
+        list.replaceChildren(...rows);
+    },
+
+    renderLineups() {
+        const list = this.$refs.lineupsList;
+        if (!list) return;
+        ['home', 'away'].forEach((side) => {
+            const target = list.querySelector(`[data-lineup-side="${side}"]`);
+            if (!target) return;
+            [...target.children].filter((node) => !node.classList.contains('match-lineup-team-heading')).forEach((node) => node.remove());
+            const team = this.lineups?.[side] ?? {};
+            const starting = Array.isArray(team.starting) ? team.starting : [];
+            const subs = Array.isArray(team.subs) ? team.subs : [];
+            const formation = this.lineups?.formation?.[side];
+            const title = (text) => { const node = document.createElement('h4'); node.textContent = text; target.append(node); };
+            const headingFormation = target.querySelector('.match-lineup-team-heading span');
+            if (headingFormation) headingFormation.textContent = formation ?? '';
+            const rows = this.formationRows(formation, starting);
+            if (rows) {
+                const pitch = document.createElement('div'); pitch.className = 'match-lineup-pitch';
+                rows.forEach((players) => {
+                    const row = document.createElement('div'); row.className = 'match-lineup-pitch-row';
+                    players.forEach((player) => {
+                        const card = document.createElement('div'); card.className = 'match-lineup-pitch-player';
+                        const number = document.createElement('span'); number.textContent = String(player.number ?? '—');
+                        const name = document.createElement('strong'); name.textContent = String(player.name ?? 'Oyuncu');
+                        card.append(number, name);
+                        if (player.rating !== undefined) { const rating = document.createElement('small'); rating.className = 'match-player-rating'; rating.textContent = String(player.rating); card.append(rating); }
+                        row.append(card);
+                    });
+                    pitch.append(row);
+                });
+                target.append(pitch);
+            }
+            const playerList = (players) => {
+                const ordered = document.createElement('ol'); ordered.className = 'match-lineup-list';
+                players.forEach((player) => {
+                    const item = document.createElement('li');
+                    const number = document.createElement('span'); number.className = 'match-lineup-number'; number.textContent = String(player.number ?? '—'); item.append(number);
+                    if (player.image && String(player.image).startsWith('https://')) {
+                        const image = document.createElement('img'); image.src = player.image; image.alt = ''; image.loading = 'lazy'; image.onerror = () => image.remove(); item.append(image);
+                    }
+                    const info = document.createElement('span');
+                    const name = document.createElement('strong'); name.textContent = String(player.name ?? 'Oyuncu'); info.append(name);
+                    if (player.position) { const position = document.createElement('small'); position.textContent = String(player.position); info.append(position); }
+                    item.append(info);
+                    if (player.rating !== undefined) { const rating = document.createElement('small'); rating.className = 'match-player-rating'; rating.textContent = String(player.rating); item.append(rating); }
+                    ordered.append(item);
+                });
+                target.append(ordered);
+            };
+            title('İlk 11'); playerList(starting);
+            if (subs.length) { title('Yedekler'); playerList(subs); }
+            if (team.coach?.name) {
+                const coach = document.createElement('p'); coach.className = 'match-lineup-coach';
+                const label = document.createElement('span'); label.textContent = 'Teknik direktör';
+                const name = document.createElement('strong'); name.textContent = String(team.coach.name);
+                coach.append(label, name); target.append(coach);
+            }
+        });
+    },
+
+    formationRows(formation, players) {
+        if (!Array.isArray(players) || players.length !== 11) return null;
+        const value = String(formation ?? '').trim();
+        if (!/^\d(?:-?\d){2,4}$/.test(value)) return null;
+        const groups = value.includes('-') ? value.split('-') : value.split('');
+        const counts = groups.map(Number);
+        if (counts.reduce((a, b) => a + b, 0) !== 10 || counts.some((n) => n < 1 || n > 5)) return null;
+        if (!['goalkeeper', 'kaleci'].includes(String(players[0]?.position ?? '').toLocaleLowerCase('tr-TR'))) return null;
+        const rows = [[players[0]]]; let offset = 1;
+        counts.forEach((count) => { rows.push(players.slice(offset, offset + count)); offset += count; });
+        const role = (player) => String(player?.position ?? '').trim().toLocaleLowerCase('tr-TR');
+        if (rows[1].some((player) => !['defender', 'defans', 'savunma'].includes(role(player)))) return null;
+        if (rows.at(-1).some((player) => !['forward', 'forvet'].includes(role(player)))) return null;
+        if (rows.slice(2, -1).some((row) => row.some((player) => !['midfielder', 'orta saha', 'forward', 'forvet'].includes(role(player))))) return null;
+        return rows;
     },
 });
 

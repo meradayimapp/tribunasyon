@@ -247,6 +247,16 @@ class FootballLiveSynchronizer
             $detail = is_array($event['detail'] ?? null) ? $event['detail'] : [];
             $playerName = $this->personName($detail['player'] ?? null);
 
+            $type = str_replace(' ', '_', $providerType);
+            $label = $types[$providerType];
+            if ($providerType === 'goal' && filter_var($detail['is_penalty'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                $type = 'penalty_goal';
+                $label = 'Penaltı Golü';
+            } elseif (in_array($providerType, ['yellow card', 'red card'], true) && filter_var($detail['is_second_yellow'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                $type = 'second_yellow';
+                $label = 'İkinci Sarı Kart';
+            }
+
             if ($providerType === 'substitution') {
                 $out = $this->personName($detail['player_out'] ?? null);
                 $in = $this->personName($detail['player_in'] ?? null);
@@ -256,8 +266,8 @@ class FootballLiveSynchronizer
             $score = $this->scoreLine($detail['score'] ?? null);
             $normalized[] = array_filter([
                 'time' => $time,
-                'type' => str_replace(' ', '_', $providerType),
-                'label' => $types[$providerType],
+                'type' => $type,
+                'label' => $label,
                 'side' => $side,
                 'player_name' => $playerName,
                 'player_in' => $in ?? null,
@@ -265,6 +275,20 @@ class FootballLiveSynchronizer
                 'score' => $score,
             ], fn (mixed $value): bool => $value !== null);
         }
+
+        usort($normalized, static function (array $a, array $b): int {
+            $time = static function (array $event): int {
+                if (! isset($event['time'])) {
+                    return PHP_INT_MAX;
+                }
+
+                $parts = explode('+', (string) ($event['time'] ?? ''));
+
+                return ((int) $parts[0]) * 100 + (int) ($parts[1] ?? 0);
+            };
+
+            return $time($a) <=> $time($b);
+        });
 
         return $normalized;
     }
@@ -313,6 +337,10 @@ class FootballLiveSynchronizer
 
             $person['number'] = $this->nullableString($player['number'] ?? null, 4);
             $person['position'] = $this->nullableString($player['position'] ?? null, 60);
+            $rating = $player['rating'] ?? null;
+            if (is_numeric($rating) && (float) $rating >= 0 && (float) $rating <= 10) {
+                $person['rating'] = round((float) $rating, 1);
+            }
             $normalized[] = array_filter($person, fn (mixed $value): bool => $value !== null);
         }
 
@@ -351,6 +379,10 @@ class FootballLiveSynchronizer
             'corners' => 'Korner',
             'fouls' => 'Faul',
             'offsides' => 'Ofsayt',
+            'pass accuracy' => 'Pas İsabeti',
+            'yellow cards' => 'Sarı Kart',
+            'red cards' => 'Kırmızı Kart',
+            'expected goals' => 'Gol Beklentisi (xG)',
         ];
         $normalized = [];
 
@@ -370,10 +402,28 @@ class FootballLiveSynchronizer
                 'label' => $labels[strtolower($providerLabel)] ?? $providerLabel,
                 'home' => $home,
                 'away' => $away,
+                'home_share' => $this->statShare($home, $away),
             ];
         }
 
         return $normalized;
+    }
+
+    private function statShare(?string $home, ?string $away): float
+    {
+        $number = static function (?string $value): float {
+            if ($value === null || ! preg_match('/\d+(?:[.,]\d+)?/', $value, $matches)) {
+                return 0;
+            }
+
+            return max(0, (float) str_replace(',', '.', $matches[0]));
+        };
+
+        $homeValue = $number($home);
+        $awayValue = $number($away);
+        $total = $homeValue + $awayValue;
+
+        return $total > 0 ? round(100 * $homeValue / $total, 2) : 50;
     }
 
     private function addScore(array &$attributes, string $key, mixed $value): void

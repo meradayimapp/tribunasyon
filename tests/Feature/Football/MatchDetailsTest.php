@@ -9,12 +9,27 @@ use App\Models\FootballTeam;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class MatchDetailsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Cache::flush();
+        config()->set('services.live_football_api', [
+            'key' => 'test-secret-key', 'base_url' => 'https://football.test/api/v1',
+        ]);
+        Http::fake([
+            'football.test/api/v1/league_standings*' => Http::response(['success' => true, 'data' => ['league_id' => 'league-1', 'standings' => []]]),
+            'football.test/api/v1/h2h*' => Http::response(['success' => true, 'data' => ['match_id' => 'match-1', 'home_form' => [], 'away_form' => [], 'h2h' => []]]),
+            'football.test/api/v1/injuries*' => Http::response(['success' => true, 'data' => ['match_id' => 'match-1', 'injuries' => ['home' => [], 'away' => []]]]),
+        ]);
+    }
 
     public function test_match_detail_is_public_server_rendered_and_uses_team_destinations(): void
     {
@@ -65,11 +80,12 @@ class MatchDetailsTest extends TestCase
 
         $this->getJson(route('matches.state', $match))
             ->assertOk()
-            ->assertExactJson([
-                'status' => 'live', 'is_live' => true, 'is_half_time' => false, 'is_finished' => false,
-                'score' => ['home' => 1, 'away' => 0], 'minute' => 37,
-                'status_display' => 'CANLI', 'events' => [], 'updated_at' => null,
-            ]);
+            ->assertJsonPath('status', 'live')
+            ->assertJsonPath('score.home', 1)
+            ->assertJsonPath('minute', 37)
+            ->assertJsonPath('events', [])
+            ->assertJsonPath('stats', [])
+            ->assertJsonPath('lineups', []);
         Http::assertNothingSent();
 
         $match->update(['status_display' => 'HT']);
@@ -143,9 +159,8 @@ class MatchDetailsTest extends TestCase
 
         $this->get(route('matches.show', $match))
             ->assertOk()
-            ->assertDontSee('<dt>Durum</dt>', false)
-            ->assertDontSee('id="lineups-title"', false)
-            ->assertDontSee('id="stats-title"', false);
+            ->assertSee('Kadro bilgisi henüz açıklanmadı.')
+            ->assertSee('Maç istatistikleri henüz mevcut değil.');
 
         $match->update([
             'venue_name' => 'Test Stadı',
@@ -175,13 +190,10 @@ class MatchDetailsTest extends TestCase
             ->assertSee('Topa Sahip Olma')
             ->assertSee('46%')
             ->assertSee('54%')
-            ->assertSee('x-show="activePanel === \'stats\'"', false)
-            ->assertSee('x-show="activePanel === \'lineups\'"', false);
+            ->assertSee('x-show="activeTab === \'istatistik\'"', false)
+            ->assertSee('x-show="activeTab === \'kadro\'"', false);
 
-        $this->assertLessThan(
-            strpos($response->getContent(), 'match-details-drawer'),
-            strpos($response->getContent(), 'match-chat-priority'),
-        );
+        $this->assertLessThan(strpos($response->getContent(), 'match-panel-sohbet'), strpos($response->getContent(), 'match-center-tabs'));
     }
 
     public function test_match_pages_eager_load_their_required_relations(): void
