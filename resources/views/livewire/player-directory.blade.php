@@ -16,9 +16,10 @@
     <div class="player-grid" wire:loading.class="is-loading" wire:target="search,sort,gotoPage,previousPage,nextPage">
         @forelse($players as $player)
             @php($periodInteractions = (int) ($player->period_messages_count ?? 0) + (int) ($player->period_follows_count ?? 0))
+            @php($displayImageUrl = $player->displayImageUrl())
             <a class="player-card" href="{{ route('players.show', $player) }}" wire:key="player-card-{{ $player->id }}">
                 <div class="player-card-photo">
-                    @if($player->photoUrl())<img src="{{ $player->photoUrl() }}" alt="{{ $player->name }} fotoğrafı" loading="lazy" decoding="async">@else<span>{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}</span>@endif
+                    @if($displayImageUrl)<img src="{{ $displayImageUrl }}" alt="{{ $player->name }} fotoğrafı" loading="lazy" decoding="async" onerror="this.remove(); this.nextElementSibling.style.display=''">@endif<span @if($displayImageUrl) style="display:none" @endif>{{ mb_strtoupper(mb_substr($player->name, 0, 2)) }}</span>
                     @if($rankingActive && $periodInteractions > 0 && ($players->firstItem() + $loop->index) <= 3)
                         <span class="player-rank-badge"><x-ui.icon name="trophy" /> #{{ $players->firstItem() + $loop->index }}</span>
                     @endif
@@ -29,7 +30,11 @@
                     @if($player->currentTeam)<div class="player-card-team"><x-team-logo :team="$player->currentTeam" size="xs" /><span>{{ $player->currentTeam->name }}</span></div>@endif
                     <div class="player-card-meta">
                         @if($rankingActive)
-                            <span class="player-card-activity"><x-ui.icon name="comment" /> {{ number_format($player->period_messages_count ?? 0, 0, ',', '.') }} mesaj@if(($player->period_follows_count ?? 0) > 0) · {{ number_format($player->period_follows_count, 0, ',', '.') }} takip@endif</span>
+                            <span class="player-card-activity"><x-ui.icon name="comment" /> {{ number_format($player->period_messages_count ?? 0, 0, ',', '.') }} mesaj
+                                @if(($player->period_follows_count ?? 0) > 0)
+                                    · {{ number_format($player->period_follows_count, 0, ',', '.') }} takip
+                                @endif
+                            </span>
                         @elseif($player->national_team_name)<span>{{ $player->national_team_name }}</span>@endif
                         @if($player->formatted_market_value)<strong>{{ $player->formatted_market_value }}</strong>@endif
                     </div>

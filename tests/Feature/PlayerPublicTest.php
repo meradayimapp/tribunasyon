@@ -95,6 +95,35 @@ class PlayerPublicTest extends TestCase
             ->assertOk()->assertSee($player->name)->assertDontSee('Başka İsim');
     }
 
+    public function test_player_directory_uses_provider_photo_with_manual_priority_and_compiles_activity_counts(): void
+    {
+        $provider = Player::factory()->create([
+            'name' => 'Provider Kart', 'photo_path' => null,
+            'provider_image_url' => 'https://cdn.test/directory.png',
+        ]);
+        Player::factory()->create([
+            'name' => 'Manuel Kart', 'photo_path' => 'players/photos/manual.png',
+            'provider_image_url' => 'https://cdn.test/ignored.png',
+        ]);
+        Player::factory()->create([
+            'name' => 'Resimsiz Kart', 'photo_path' => null, 'provider_image_url' => null,
+        ]);
+        $provider->followers()->attach(User::factory()->count(2)->create()->pluck('id')->all());
+
+        $response = $this->get(route('players.index'))->assertOk()
+            ->assertSee('https://cdn.test/directory.png', false)
+            ->assertSee('manual.png', false)
+            ->assertDontSee('https://cdn.test/ignored.png', false)
+            ->assertSee(route('players.show', $provider), false)
+            ->assertDontSee('@if', false)
+            ->assertDontSee('@endif', false);
+
+        $text = preg_replace('/\s+/u', ' ', strip_tags($response->getContent()));
+        $this->assertStringContainsString('0 mesaj · 2 takip', $text);
+        $this->assertStringNotContainsString('0 mesaj · 0 takip', $text);
+        $this->assertStringContainsString('RE', $response->getContent());
+    }
+
     public function test_global_search_returns_only_active_players(): void
     {
         $active = Player::factory()->create(['name' => 'Arama Yıldızı', 'slug' => 'arama-yildizi']);

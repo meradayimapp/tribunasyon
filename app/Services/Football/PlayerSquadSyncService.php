@@ -32,6 +32,42 @@ class PlayerSquadSyncService
             ->get();
     }
 
+    /**
+     * Fill images on already mapped players without importing or remapping a squad.
+     * The existing squad normalizer validates provider IDs and image URLs.
+     *
+     * @return array{pending: int, updated: int}
+     */
+    public function syncMissingPlayerImages(Team $team): array
+    {
+        $players = $team->players()
+            ->whereNotNull('provider_player_id')
+            ->where('provider_player_id', '!=', '')
+            ->where(fn ($query) => $query->whereNull('provider_image_url')->orWhere('provider_image_url', ''))
+            ->get(['id', 'current_team_id', 'provider_player_id', 'provider_image_url']);
+
+        if ($players->isEmpty()) {
+            return ['pending' => 0, 'updated' => 0];
+        }
+
+        $footballTeam = $this->linkedFootballTeam($team);
+        $squad = $this->api->teamSquad($footballTeam->provider_team_id);
+        $images = collect($this->normalizeSquad($squad['squad']))
+            ->filter(fn (array $player): bool => $player['provider_image_url'] !== null)
+            ->mapWithKeys(fn (array $player): array => [$player['provider_player_id'] => $player['provider_image_url']]);
+
+        $updated = 0;
+        foreach ($players as $player) {
+            $image = $images->get($player->provider_player_id);
+            if ($image !== null) {
+                $player->update(['provider_image_url' => $image]);
+                $updated++;
+            }
+        }
+
+        return ['pending' => $players->count(), 'updated' => $updated];
+    }
+
     public function createPreview(User $admin, Team $team): array
     {
         $footballTeam = $this->linkedFootballTeam($team);
