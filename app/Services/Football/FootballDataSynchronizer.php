@@ -16,6 +16,7 @@ class FootballDataSynchronizer
     public function __construct(
         private readonly LiveFootballApiService $api,
         private readonly FootballTeamSocialMapper $socialTeamMapper,
+        private readonly ProviderMatchStatusNormalizer $statusNormalizer,
     ) {}
 
     public function syncCompetition(FootballCompetition $competition): int
@@ -115,23 +116,28 @@ class FootballDataSynchronizer
         $homeTeam = $this->syncTeam($home, $syncedAt);
         $awayTeam = $this->syncTeam($away, $syncedAt);
         $status = is_array($match['status'] ?? null) ? $match['status'] : [];
-        $isLive = $this->boolean($status['is_live'] ?? false);
+        $normalizedStatus = $this->statusNormalizer->normalize(
+            $status['status'] ?? null,
+            $status['state'] ?? null,
+            $status['is_live'] ?? false,
+            $status['display'] ?? null,
+        );
 
         $attributes = [
             'competition_id' => $competition->id,
             'home_football_team_id' => $homeTeam->id,
             'away_football_team_id' => $awayTeam->id,
             'kickoff_at' => $this->kickoffAt($match, $fallbackDate),
-            'status' => $this->nullableString($status['status'] ?? null) ?? 'unknown',
+            'status' => $normalizedStatus['status'],
             'state' => $this->nullableString($status['state'] ?? null),
             'status_display' => $this->nullableString($status['display'] ?? null),
-            'is_live' => $isLive,
+            'is_live' => $normalizedStatus['is_live'],
             'last_synced_at' => $syncedAt,
             'meta' => $match,
         ];
 
         $minute = $this->minute($status['minute'] ?? null, $status['display'] ?? null);
-        if ($isLive || $minute !== null) {
+        if ($normalizedStatus['is_live'] || $minute !== null) {
             $attributes['live_minute'] = $minute;
         } elseif (in_array($attributes['status'], FootballMatch::TERMINAL_STATUSES, true)) {
             $attributes['live_minute'] = null;

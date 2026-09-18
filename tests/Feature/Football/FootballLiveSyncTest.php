@@ -5,6 +5,8 @@ namespace Tests\Feature\Football;
 use App\Models\FootballCompetition;
 use App\Models\FootballMatch;
 use App\Models\FootballTeam;
+use App\Services\Football\FootballLiveSynchronizer;
+use App\Services\Football\ProviderMatchStatusNormalizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
@@ -57,6 +59,7 @@ class FootballLiveSyncTest extends TestCase
         $this->assertSame(1, $match->home_score);
         $this->assertSame('Gol', $match->live_events[0]['label']);
         $this->assertSame('Oyuncu', $match->live_events[0]['player_name']);
+        $this->assertSame('Sarı Kart', $match->live_events[1]['label']);
         $this->assertSame('Topa Sahip Olma', $match->match_stats[0]['label']);
         $this->assertSame('Test Arena', $match->venue_name);
         $this->assertSame('Test Hakemi', $match->referee_name);
@@ -80,15 +83,88 @@ class FootballLiveSyncTest extends TestCase
             'home_score' => 2, 'away_score' => 1, 'live_minute' => 28,
             'live_events' => [['time' => '10', 'type' => 'goal', 'label' => 'Gol']],
         ]);
-        Http::fake(['*' => Http::response(['success' => false], 503)]);
+        Http::fake(['*' => Http::response(['success' => false], 429)]);
 
-        $this->artisan('football:sync-live')->assertExitCode(1);
+        $this->artisan('football:sync-live')
+            ->expectsOutputToContain('API isteği başarısız oldu')
+            ->assertExitCode(1);
 
         $match->refresh();
         $this->assertSame(2, $match->home_score);
         $this->assertSame(1, $match->away_score);
         $this->assertSame(28, $match->live_minute);
         $this->assertSame('Gol', $match->live_events[0]['label']);
+    }
+
+    public function test_istanbul_kickoff_is_selected_using_its_utc_storage_value(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-09 16:40:00', 'UTC'));
+        $match = $this->match(['kickoff_at' => '2026-09-09 17:00:00']);
+        Http::fake([
+            'football.test/api/v1/matches*' => Http::response($this->matchesResponse()),
+            'football.test/api/v1/live_match_details*' => Http::response($this->detailsResponse()),
+            'football.test/api/v1/lineups*' => Http::response($this->lineupsResponse()),
+        ]);
+
+        $this->assertSame('2026-09-09 20:00', $match->kickoffInDisplayTimezone()->format('Y-m-d H:i'));
+        $this->artisan('football:sync-live')->assertExitCode(0);
+        $this->assertTrue($match->fresh()->is_live);
+    }
+
+    public function test_real_provider_status_shapes_are_normalized_centrally(): void
+    {
+        $normalizer = app(ProviderMatchStatusNormalizer::class);
+
+        $this->assertSame(['status' => 'scheduled', 'is_live' => false], $normalizer->normalize('scheduled', 'preGame', false, '17:00'));
+        $this->assertSame(['status' => 'live', 'is_live' => true], $normalizer->normalize('live', 'inPlay', true, "37'"));
+        $this->assertSame(['status' => 'halftime', 'is_live' => true], $normalizer->normalize('live', 'inPlay', true, 'İY'));
+        $this->assertSame(['status' => 'finished', 'is_live' => false], $normalizer->normalize('finished', 'postGame', false, 'MS'));
+        $this->assertSame(['status' => 'postponed', 'is_live' => false], $normalizer->normalize('postponed', 'postponed', false, 'Ertelendi'));
+        $this->assertSame(['status' => 'cancelled', 'is_live' => false], $normalizer->normalize('cancelled', 'cancelled', false, 'İptal'));
+    }
+
+    public function test_finished_detail_closes_live_match_without_losing_score(): void
+    {
+        $match = $this->match([
+            'status' => 'live', 'status_display' => "90'", 'is_live' => true,
+            'home_score' => 1, 'away_score' => 0,
+        ]);
+        Http::fake(['football.test/api/v1/live_match_details*' => Http::response([
+            'success' => true,
+            'data' => [
+                'match_id' => 'live-match',
+                'header' => [
+                    'home' => ['score' => '2'],
+                    'away' => ['score' => '1'],
+                    'status' => ['display' => 'MS', 'is_live' => false, 'minute' => '90', 'state' => 'postGame'],
+                ],
+                'events' => [],
+                'stats' => [],
+            ],
+        ])]);
+
+        app(FootballLiveSynchronizer::class)->syncDetails($match);
+
+        $match->refresh();
+        $this->assertSame('finished', $match->status);
+        $this->assertFalse($match->is_live);
+        $this->assertSame(2, $match->home_score);
+        $this->assertSame(1, $match->away_score);
+    }
+
+    public function test_verbose_command_reports_candidate_provider_id_without_secrets(): void
+    {
+        $this->match();
+        Http::fake([
+            'football.test/api/v1/matches*' => Http::response($this->matchesResponse()),
+            'football.test/api/v1/live_match_details*' => Http::response($this->detailsResponse()),
+            'football.test/api/v1/lineups*' => Http::response($this->lineupsResponse()),
+        ]);
+
+        $this->artisan('football:sync-live', ['-vvv' => true])
+            ->expectsOutputToContain('provider=live-match')
+            ->doesntExpectOutputToContain('test-secret-key')
+            ->assertExitCode(0);
     }
 
     public function test_no_candidate_means_no_upstream_request(): void
@@ -153,6 +229,7 @@ class FootballLiveSyncTest extends TestCase
             ],
             'events' => [
                 ['time' => '36', 'type' => 'Goal', 'side' => 'home', 'detail' => ['player' => ['id' => 'p1', 'name' => '<b>Oyuncu</b>'], 'score' => '1-0']],
+                ['time' => '40', 'type' => 'yellow_card', 'side' => 'away', 'detail' => ['player' => ['name' => 'Kartlı Oyuncu']]],
                 ['time' => '55', 'type' => 'Substitution', 'side' => 'away', 'detail' => ['player_in' => ['name' => 'Giren'], 'player_out' => ['name' => 'Çıkan']]],
                 ['time' => 'x', 'type' => 'Unknown', 'detail' => ['raw' => '<script>alert(1)</script>']],
             ],

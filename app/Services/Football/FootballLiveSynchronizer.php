@@ -2,18 +2,16 @@
 
 namespace App\Services\Football;
 
+use App\Exceptions\LiveFootballApiException;
 use App\Models\FootballMatch;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class FootballLiveSynchronizer
 {
-    private const PRE_MATCH_WINDOW_MINUTES = 20;
-
-    private const MATCH_WINDOW_HOURS = 6;
-
     private const DETAIL_THROTTLE_SECONDS = 45;
 
     private const LINEUP_WINDOW_MINUTES = 75;
@@ -25,19 +23,27 @@ class FootballLiveSynchronizer
     public function __construct(
         private readonly LiveFootballApiService $api,
         private readonly FootballDataSynchronizer $fixtures,
+        private readonly ProviderMatchStatusNormalizer $statusNormalizer,
     ) {}
 
     public function sync(): array
     {
         $now = CarbonImmutable::now('UTC');
-        $candidates = $this->candidateQuery($now)->get(['football_matches.id', 'football_matches.kickoff_at']);
+        $candidates = $this->candidateQuery($now)->get([
+            'football_matches.id',
+            'football_matches.provider_match_id',
+            'football_matches.kickoff_at',
+            'football_matches.status',
+            'football_matches.is_live',
+        ]);
 
         $dates = $candidates
             ->map(fn (FootballMatch $match): string => $match->kickoffInDisplayTimezone()->format('Y-m-d'))
             ->unique();
         $dateCalls = 0;
         $failed = 0;
-        $details = $this->syncLiveDetails($now, $failed);
+        $failures = [];
+        $details = $this->syncLiveDetails($now, $failed, $failures);
 
         foreach ($dates as $date) {
             $throttleKey = "football:live:matches:{$date}";
@@ -48,13 +54,14 @@ class FootballLiveSynchronizer
             try {
                 $this->fixtures->syncDate($date);
                 $dateCalls++;
-            } catch (Throwable) {
+            } catch (Throwable $exception) {
                 Cache::forget($throttleKey);
                 $failed++;
+                $this->recordFailure($failures, $exception, 'matches_for_date', ['date' => $date]);
             }
         }
 
-        $details += $this->syncLiveDetails($now, $failed);
+        $details += $this->syncLiveDetails($now, $failed, $failures);
 
         $lineups = 0;
         $lineupMatches = $this->lineupCandidateQuery($now)->get();
@@ -69,16 +76,34 @@ class FootballLiveSynchronizer
                 if ($this->syncLineups($match)) {
                     $lineups++;
                 }
-            } catch (Throwable) {
+            } catch (Throwable $exception) {
                 Cache::forget($throttleKey);
                 $failed++;
+                $this->recordFailure($failures, $exception, 'lineups', [
+                    'match_id' => $match->id,
+                    'provider_match_id' => $match->provider_match_id,
+                ]);
             }
         }
 
-        return ['candidates' => $candidates->count(), 'dates' => $dateCalls, 'details' => $details, 'lineups' => $lineups, 'failed' => $failed];
+        return [
+            'candidates' => $candidates->count(),
+            'candidate_matches' => $candidates->map(fn (FootballMatch $match): array => [
+                'id' => $match->id,
+                'provider_match_id' => $match->provider_match_id,
+                'kickoff_at' => $match->kickoff_at->toIso8601String(),
+                'status' => $match->status,
+                'is_live' => $match->is_live,
+            ])->all(),
+            'dates' => $dateCalls,
+            'details' => $details,
+            'lineups' => $lineups,
+            'failed' => $failed,
+            'failures' => $failures,
+        ];
     }
 
-    private function syncLiveDetails(CarbonImmutable $now, int &$failed): int
+    private function syncLiveDetails(CarbonImmutable $now, int &$failed, array &$failures): int
     {
         $liveMatches = $this->candidateQuery($now)
             ->where('football_matches.is_live', true)
@@ -97,9 +122,13 @@ class FootballLiveSynchronizer
             try {
                 $this->syncDetails($match);
                 $details++;
-            } catch (Throwable) {
+            } catch (Throwable $exception) {
                 Cache::forget($throttleKey);
                 $failed++;
+                $this->recordFailure($failures, $exception, 'live_match_details', [
+                    'match_id' => $match->id,
+                    'provider_match_id' => $match->provider_match_id,
+                ]);
             }
         }
 
@@ -123,8 +152,11 @@ class FootballLiveSynchronizer
         $this->addScore($attributes, 'home_score', data_get($header, 'home.score'));
         $this->addScore($attributes, 'away_score', data_get($header, 'away.score'));
 
-        if (array_key_exists('display', $status)) {
-            $attributes['status_display'] = $this->nullableString($status['display']);
+        $statusDisplay = array_key_exists('display', $status)
+            ? $this->nullableString($status['display'])
+            : null;
+        if ($statusDisplay !== null) {
+            $attributes['status_display'] = $statusDisplay;
         }
         if (array_key_exists('state', $status)) {
             $attributes['state'] = $this->nullableString($status['state']);
@@ -132,9 +164,15 @@ class FootballLiveSynchronizer
         if (array_key_exists('minute', $status)) {
             $attributes['live_minute'] = $this->minute($status['minute']);
         }
-        if (array_key_exists('is_live', $status)) {
-            $attributes['is_live'] = filter_var($status['is_live'], FILTER_VALIDATE_BOOLEAN);
-            $attributes['status'] = $attributes['is_live'] ? 'live' : $this->statusAfterLive($attributes['state'] ?? $match->state);
+        if ($status !== []) {
+            $normalizedStatus = $this->statusNormalizer->normalize(
+                $status['status'] ?? null,
+                $attributes['state'] ?? $match->state,
+                $status['is_live'] ?? $match->is_live,
+                $statusDisplay ?? $match->status_display,
+            );
+            $attributes['is_live'] = $normalizedStatus['is_live'];
+            $attributes['status'] = $normalizedStatus['status'];
         }
         if (is_array($data['events'] ?? null)) {
             $attributes['live_events'] = $this->normalizeEvents($data['events']);
@@ -192,8 +230,8 @@ class FootballLiveSynchronizer
     {
         return FootballMatch::query()
             ->whereBetween('football_matches.kickoff_at', [
-                $now->subHours(self::MATCH_WINDOW_HOURS)->format('Y-m-d H:i:s'),
-                $now->addMinutes(self::PRE_MATCH_WINDOW_MINUTES)->format('Y-m-d H:i:s'),
+                $now->subHours(FootballMatch::LIVE_SYNC_WINDOW_HOURS)->format('Y-m-d H:i:s'),
+                $now->addMinutes(FootballMatch::LIVE_SYNC_LEAD_MINUTES)->format('Y-m-d H:i:s'),
             ])
             ->where(fn (Builder $query): Builder => $query
                 ->where('football_matches.is_live', true)
@@ -237,7 +275,11 @@ class FootballLiveSynchronizer
                 continue;
             }
 
-            $providerType = strtolower((string) ($event['type'] ?? ''));
+            $providerType = strtolower(trim((string) preg_replace(
+                '/[_-]+/',
+                ' ',
+                (string) ($event['type'] ?? ''),
+            )));
             if (! isset($types[$providerType])) {
                 continue;
             }
@@ -442,13 +484,23 @@ class FootballLiveSynchronizer
         return null;
     }
 
-    private function statusAfterLive(?string $state): string
+    private function recordFailure(array &$failures, Throwable $exception, string $operation, array $context): void
     {
-        $normalized = strtolower((string) preg_replace('/[^a-z]/i', '', (string) $state));
+        $category = $exception instanceof LiveFootballApiException ? $exception->category : 'unexpected';
+        $httpStatus = $exception instanceof LiveFootballApiException ? $exception->httpStatus : null;
+        $failure = array_filter([
+            'operation' => $operation,
+            'category' => $category,
+            'http_status' => $httpStatus,
+            ...$context,
+        ], static fn (mixed $value): bool => $value !== null);
 
-        return in_array($normalized, ['postgame', 'fulltime', 'finished', 'ended', 'aftergame'], true)
-            ? 'finished'
-            : 'unknown';
+        $failures[] = $failure;
+
+        Log::warning('Canlı futbol senkronizasyonu API işlemi başarısız oldu.', [
+            ...$failure,
+            'exception' => $exception::class,
+        ]);
     }
 
     private function eventTime(mixed $value): ?string

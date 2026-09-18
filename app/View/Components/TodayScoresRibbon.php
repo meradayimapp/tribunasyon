@@ -21,7 +21,8 @@ class TodayScoresRibbon extends Component
         $matches = $service->matchesForDate(Carbon::today(FootballMatch::DISPLAY_TIMEZONE));
 
         $this->matches = $service->scoreRibbonPayload($matches);
-        $this->pollingEnabled = ! request()->routeIs('matches.show') && $matches->contains('is_live', true);
+        $this->pollingEnabled = ! request()->routeIs('matches.show')
+            && $matches->contains(fn (FootballMatch $match): bool => ! $match->isFinished());
     }
 
     public function render(): View|Closure|string

@@ -206,7 +206,7 @@ class LiveFootballApiService
 
             $response = $request->get($endpoint, ['api_key' => $key, 'lang' => 'tr'] + $query);
         } catch (Throwable) {
-            throw new LiveFootballApiException('Live Football API bağlantısı kurulamadı.');
+            throw new LiveFootballApiException('Live Football API bağlantısı kurulamadı.', 'connection');
         }
 
         $this->ensureSuccessful($response);
@@ -214,7 +214,7 @@ class LiveFootballApiService
         $payload = $response->json();
 
         if (! is_array($payload) || ($payload['success'] ?? null) !== true || ! is_array($payload['data'] ?? null)) {
-            throw new LiveFootballApiException('Live Football API geçersiz bir yanıt döndürdü.');
+            throw new LiveFootballApiException('Live Football API geçersiz bir yanıt döndürdü.', 'malformed_response');
         }
 
         return $payload['data'];
@@ -223,7 +223,19 @@ class LiveFootballApiService
     private function ensureSuccessful(Response $response): void
     {
         if (! $response->successful()) {
-            throw new LiveFootballApiException("Live Football API isteği başarısız oldu (HTTP {$response->status()}).");
+            $status = $response->status();
+            $category = match ($status) {
+                401 => 'authentication',
+                403 => 'authorization_or_credit',
+                429 => 'rate_limit',
+                default => $status >= 500 ? 'upstream' : 'http_error',
+            };
+
+            throw new LiveFootballApiException(
+                "Live Football API isteği başarısız oldu (HTTP {$status}, {$category}).",
+                $category,
+                $status,
+            );
         }
     }
 }

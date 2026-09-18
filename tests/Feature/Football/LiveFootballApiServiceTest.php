@@ -7,6 +7,7 @@ use App\Services\Football\LiveFootballApiService;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class LiveFootballApiServiceTest extends TestCase
@@ -204,7 +205,46 @@ class LiveFootballApiServiceTest extends TestCase
         } catch (LiveFootballApiException $exception) {
             $this->assertStringNotContainsString('test-secret-key', $exception->getMessage());
             $this->assertStringNotContainsString('football.test', $exception->getMessage());
-            $this->assertSame('Live Football API isteği başarısız oldu (HTTP 401).', $exception->getMessage());
+            $this->assertSame('Live Football API isteği başarısız oldu (HTTP 401, authentication).', $exception->getMessage());
+            $this->assertSame('authentication', $exception->category);
+            $this->assertSame(401, $exception->httpStatus);
+        }
+    }
+
+    #[DataProvider('providerFailureCategories')]
+    public function test_provider_failures_have_safe_actionable_categories(int $status, string $category): void
+    {
+        Http::fake(['*' => Http::response(['success' => false], $status)]);
+
+        try {
+            app(LiveFootballApiService::class)->matchesForDate('2026-09-08');
+            $this->fail("HTTP {$status} should have thrown an exception.");
+        } catch (LiveFootballApiException $exception) {
+            $this->assertSame($category, $exception->category);
+            $this->assertSame($status, $exception->httpStatus);
+            $this->assertStringNotContainsString('test-secret-key', $exception->getMessage());
+        }
+    }
+
+    public static function providerFailureCategories(): array
+    {
+        return [
+            'forbidden or credit' => [403, 'authorization_or_credit'],
+            'rate limit' => [429, 'rate_limit'],
+            'upstream' => [503, 'upstream'],
+        ];
+    }
+
+    public function test_malformed_provider_response_has_a_controlled_category(): void
+    {
+        Http::fake(['*' => Http::response(['success' => true, 'data' => 'invalid'])]);
+
+        try {
+            app(LiveFootballApiService::class)->matchesForDate('2026-09-08');
+            $this->fail('A malformed response should have thrown an exception.');
+        } catch (LiveFootballApiException $exception) {
+            $this->assertSame('malformed_response', $exception->category);
+            $this->assertNull($exception->httpStatus);
         }
     }
 }

@@ -103,7 +103,7 @@ class MatchController extends Controller
     {
         $match = FootballMatch::query()
             ->select([
-                'id', 'status', 'state', 'status_display', 'is_live',
+                'id', 'kickoff_at', 'status', 'state', 'status_display', 'is_live',
                 'home_score', 'away_score', 'live_minute', 'last_synced_at',
                 'live_events', 'live_details_synced_at',
                 'match_stats', 'lineups', 'lineup_is_projected', 'lineup_synced_at',

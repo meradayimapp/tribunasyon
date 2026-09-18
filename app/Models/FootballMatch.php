@@ -15,6 +15,10 @@ class FootballMatch extends Model
 
     public const TERMINAL_STATUSES = ['finished', 'cancelled', 'canceled', 'postponed', 'abandoned'];
 
+    public const LIVE_SYNC_LEAD_MINUTES = 20;
+
+    public const LIVE_SYNC_WINDOW_HOURS = 6;
+
     protected $fillable = [
         'competition_id',
         'home_football_team_id',
@@ -158,10 +162,37 @@ class FootballMatch extends Model
         return in_array(strtolower($this->status), ['scheduled', 'not_started'], true);
     }
 
+    public function livePollingStartsAt(): CarbonImmutable
+    {
+        return $this->kickoff_at->subMinutes(self::LIVE_SYNC_LEAD_MINUTES);
+    }
+
+    public function shouldPollLiveState(?CarbonImmutable $now = null): bool
+    {
+        if ($this->is_live) {
+            return true;
+        }
+
+        if ($this->isFinished()) {
+            return false;
+        }
+
+        $now ??= CarbonImmutable::now('UTC');
+
+        return $now->betweenIncluded(
+            $this->livePollingStartsAt(),
+            $this->kickoff_at->addHours(self::LIVE_SYNC_WINDOW_HOURS),
+        );
+    }
+
     public function isHalfTime(): bool
     {
         if (! $this->is_live) {
             return false;
+        }
+
+        if (strtolower($this->status) === 'halftime') {
+            return true;
         }
 
         $status = mb_strtolower((string) $this->status_display);
@@ -229,6 +260,8 @@ class FootballMatch extends Model
             'lineup_is_projected' => $this->lineup_is_projected,
             'lineup_updated_at' => $this->lineup_synced_at?->toIso8601String(),
             'updated_at' => ($this->live_details_synced_at ?? $this->last_synced_at)?->toIso8601String(),
+            'polling_active' => $this->shouldPollLiveState(),
+            'polling_starts_at' => $this->livePollingStartsAt()->toIso8601String(),
         ];
     }
 
@@ -255,6 +288,7 @@ class FootballMatch extends Model
 
         return match ($this->status) {
             'scheduled', 'not_started' => 'Başlamadı',
+            'halftime' => 'Devre Arası',
             'finished' => 'Bitti',
             'postponed' => 'Ertelendi',
             'cancelled', 'canceled' => 'İptal',

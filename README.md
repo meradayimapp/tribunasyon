@@ -128,8 +128,10 @@ npm run build
 
 Canlı maç senkronizasyonu ziyaretçi isteklerinden bağımsız olarak Laravel scheduler üzerinden çalışır. Hostinger Cron Jobs ekranında proje dizinini ve sunucudaki PHP binary yolunu kullanarak aşağıdaki komutu dakikada bir çalıştırın:
 
+Tribünasyon production yerleşiminde cron hedefi doğrudan güncel proje içindeki `artisan` dosyası olmalıdır. `USER` yerine Hostinger hesabında `pwd` ile görülen gerçek kullanıcı dizinini yazın:
+
 ```bash
-cd /home/USER/domains/DOMAIN/public_html && php artisan schedule:run >> /dev/null 2>&1
+/usr/bin/php /home/USER/domains/tribunasyon.com/public_html/tribunasyon/artisan schedule:run >> /dev/null 2>&1
 ```
 
 Scheduler `football:sync-live` komutunu her dakika değerlendirir; komut yalnız aktif organizasyonlarda başlamak üzere olan veya canlı maç bulunduğunda API'ye gider. `football:sync-daily` günde bir, `football:sync-fixtures` haftada bir çalışır. Hostinger hesabındaki gerçek proje yolu veya PHP komutu farklıysa yalnız bu iki kısmı paneldeki değerlerle değiştirin.

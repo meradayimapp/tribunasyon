@@ -121,13 +121,18 @@ class TodayScoresTest extends TestCase
             ->assertJsonMissing(['id' => $after->id]);
     }
 
-    public function test_polling_only_starts_for_live_matches_and_is_disabled_in_match_center(): void
+    public function test_polling_wakes_for_scheduled_matches_and_is_disabled_in_match_center(): void
     {
         $scheduled = $this->match($this->competitions['super'], 'Planlı Ev', 'Planlı Dep');
 
         $this->get(route('matches.index'))
             ->assertOk()
-            ->assertSee('data-polling="off"', false);
+            ->assertSee('data-polling="on"', false);
+
+        $this->getJson(route('matches.today.state'))
+            ->assertOk()
+            ->assertJsonPath('matches.0.polling_active', false)
+            ->assertJsonPath('matches.0.is_terminal', false);
 
         $scheduled->update([
             'status' => 'live',

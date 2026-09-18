@@ -213,6 +213,7 @@ window.playerChatScroll = () => ({
 window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
     url,
     timer: null,
+    wakeTimer: null,
     activeTab: defaultTab,
     lineupSide: 'home',
     tabs: ['sohbet', 'ozet', 'istatistik', 'kadro', 'puan-durumu', 'h2h'],
@@ -229,6 +230,8 @@ window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
     lineups: initial.lineups && typeof initial.lineups === 'object' ? initial.lineups : {},
     lineupIsProjected: Boolean(initial.lineup_is_projected),
     lineupUpdatedAt: initial.lineup_updated_at ?? null,
+    pollingActive: Boolean(initial.polling_active),
+    pollingStartsAt: initial.polling_starts_at ?? null,
 
     get scoreKnown() {
         return this.homeScore !== null || this.awayScore !== null;
@@ -282,24 +285,31 @@ window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
 
     init() {
         this.hashChanged();
-        if (this.isLive && !document.hidden) this.start();
+        if (this.pollingActive && !document.hidden) {
+            this.start();
+        } else {
+            this.armWakeup();
+        }
     },
 
     destroy() {
         this.stop();
+        if (this.wakeTimer) window.clearTimeout(this.wakeTimer);
     },
 
     visibilityChanged() {
         if (document.hidden) {
             this.stop();
-        } else if (this.isLive && !this.isFinished) {
+        } else if (this.pollingActive && !this.isFinished) {
             this.refresh();
             this.start();
+        } else {
+            this.armWakeup();
         }
     },
 
     start() {
-        if (this.timer || !this.isLive || this.isFinished || document.hidden) return;
+        if (this.timer || !this.pollingActive || this.isFinished || document.hidden) return;
         this.timer = window.setInterval(() => this.refresh(), 25000);
     },
 
@@ -308,8 +318,34 @@ window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
         this.timer = null;
     },
 
+    armWakeup() {
+        if (this.wakeTimer || this.isFinished || !this.pollingStartsAt) return;
+        const delay = new Date(this.pollingStartsAt).getTime() - Date.now();
+        if (!Number.isFinite(delay)) return;
+        if (delay <= 0) {
+            this.pollingActive = true;
+            if (!document.hidden) {
+                this.refresh();
+                this.start();
+            }
+            return;
+        }
+        this.wakeTimer = window.setTimeout(() => {
+            this.wakeTimer = null;
+            if (new Date(this.pollingStartsAt).getTime() > Date.now()) {
+                this.armWakeup();
+                return;
+            }
+            this.pollingActive = true;
+            if (!document.hidden) {
+                this.refresh();
+                this.start();
+            }
+        }, Math.min(delay, 2147483647));
+    },
+
     async refresh() {
-        if (document.hidden || !this.isLive || this.isFinished) return;
+        if (document.hidden || !this.pollingActive || this.isFinished) return;
 
         try {
             const response = await fetch(this.url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
@@ -329,12 +365,17 @@ window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
             this.lineups = state.lineups && typeof state.lineups === 'object' ? state.lineups : {};
             this.lineupIsProjected = Boolean(state.lineup_is_projected);
             this.lineupUpdatedAt = state.lineup_updated_at ?? null;
+            this.pollingActive = Boolean(state.polling_active);
+            this.pollingStartsAt = state.polling_starts_at ?? this.pollingStartsAt;
             this.$nextTick(() => {
                 this.renderEvents();
                 this.renderStats();
                 if (lineupChanged) this.renderLineups();
             });
-            if (!this.isLive || this.isFinished) this.stop();
+            if (!this.pollingActive || this.isFinished) {
+                this.stop();
+                this.armWakeup();
+            }
         } catch (error) {
             // Keep the last database-backed state visible during transient failures.
         }
@@ -537,19 +578,27 @@ window.todayScoresRibbon = (url, initialMatches, pollingEnabled = false) => ({
     matches: Array.isArray(initialMatches) ? initialMatches : [],
     pollingEnabled: Boolean(pollingEnabled),
     timer: null,
+    wakeTimer: null,
 
     init() {
-        if (this.pollingEnabled && this.hasLiveMatches && !document.hidden) {
+        if (this.pollingEnabled && this.hasPollableMatches && !document.hidden) {
             this.start();
+        } else {
+            this.armWakeup();
         }
     },
 
     destroy() {
         this.stop();
+        if (this.wakeTimer) window.clearTimeout(this.wakeTimer);
     },
 
     get hasLiveMatches() {
         return this.matches.some((match) => Boolean(match.is_live));
+    },
+
+    get hasPollableMatches() {
+        return this.matches.some((match) => Boolean(match.polling_active));
     },
 
     shortName(value) {
@@ -583,15 +632,17 @@ window.todayScoresRibbon = (url, initialMatches, pollingEnabled = false) => ({
     visibilityChanged() {
         if (document.hidden) {
             this.stop();
-        } else if (this.pollingEnabled && this.hasLiveMatches) {
+        } else if (this.pollingEnabled && this.hasPollableMatches) {
             this.refresh();
             this.start();
+        } else {
+            this.armWakeup();
         }
     },
 
     start() {
-        if (this.timer || !this.pollingEnabled || !this.hasLiveMatches || document.hidden) return;
-        this.timer = window.setInterval(() => this.refresh(), 30000);
+        if (this.timer || !this.pollingEnabled || !this.hasPollableMatches || document.hidden) return;
+        this.timer = window.setInterval(() => this.refresh(), 25000);
     },
 
     stop() {
@@ -599,8 +650,33 @@ window.todayScoresRibbon = (url, initialMatches, pollingEnabled = false) => ({
         this.timer = null;
     },
 
+    armWakeup() {
+        if (this.wakeTimer || !this.pollingEnabled) return;
+        const starts = this.matches
+            .filter((match) => !match.is_terminal && !match.polling_active && match.polling_starts_at)
+            .map((match) => new Date(match.polling_starts_at).getTime())
+            .filter((value) => Number.isFinite(value) && value > Date.now());
+        if (starts.length === 0) return;
+        const delay = Math.min(...starts) - Date.now();
+        this.wakeTimer = window.setTimeout(() => {
+            this.wakeTimer = null;
+            if (Math.min(...starts) > Date.now()) {
+                this.armWakeup();
+                return;
+            }
+            this.matches = this.matches.map((match) => ({
+                ...match,
+                polling_active: match.polling_active || (!match.is_terminal && new Date(match.polling_starts_at).getTime() <= Date.now()),
+            }));
+            if (!document.hidden) {
+                this.refresh();
+                this.start();
+            }
+        }, Math.min(delay, 2147483647));
+    },
+
     async refresh() {
-        if (document.hidden || !this.pollingEnabled || !this.hasLiveMatches) return;
+        if (document.hidden || !this.pollingEnabled || !this.hasPollableMatches) return;
 
         try {
             const response = await fetch(this.url, {
@@ -615,7 +691,10 @@ window.todayScoresRibbon = (url, initialMatches, pollingEnabled = false) => ({
             this.matches = Array.isArray(payload.matches) ? payload.matches : this.matches;
             window.dispatchEvent(new CustomEvent('today-scores-updated', { detail: { matches: this.matches } }));
 
-            if (!this.hasLiveMatches) this.stop();
+            if (!this.hasPollableMatches) {
+                this.stop();
+                this.armWakeup();
+            }
         } catch (error) {
             // Keep the latest database-backed state visible during transient failures.
         }
