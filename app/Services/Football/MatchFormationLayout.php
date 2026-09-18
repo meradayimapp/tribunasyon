@@ -36,12 +36,12 @@ class MatchFormationLayout
 
         $role = static fn (array $player): string => mb_strtolower(trim((string) ($player['position'] ?? '')));
         if (array_filter($rows[1], fn (array $player): bool => ! in_array($role($player), ['defender', 'defans', 'savunma'], true))
-            || array_filter($rows[array_key_last($rows)], fn (array $player): bool => ! in_array($role($player), ['forward', 'forvet'], true))) {
+            || array_filter($rows[array_key_last($rows)], fn (array $player): bool => ! in_array($role($player), ['attacker', 'forward', 'forvet'], true))) {
             return null;
         }
 
         foreach (array_slice($rows, 2, -1) as $middleRow) {
-            if (array_filter($middleRow, fn (array $player): bool => ! in_array($role($player), ['midfielder', 'orta saha', 'forward', 'forvet'], true))) {
+            if (array_filter($middleRow, fn (array $player): bool => ! in_array($role($player), ['midfielder', 'orta saha', 'attacker', 'forward', 'forvet'], true))) {
                 return null;
             }
         }

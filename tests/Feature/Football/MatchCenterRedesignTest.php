@@ -168,6 +168,13 @@ class MatchCenterRedesignTest extends TestCase
             [['name' => 'Forvet', 'position' => 'Forward']],
         );
         $this->assertCount(5, MatchFormationLayout::rows('4-2-3-1', $fourTwoThreeOne));
+        $providerFourFourTwo = array_merge(
+            [['name' => 'Kaleci', 'position' => 'Goalkeeper']],
+            array_fill(0, 4, ['name' => 'Savunmacı', 'position' => 'Defender']),
+            array_fill(0, 3, ['name' => 'Orta Saha', 'position' => 'Midfielder']),
+            array_fill(0, 3, ['name' => 'Hücumcu', 'position' => 'Attacker']),
+        );
+        $this->assertCount(4, MatchFormationLayout::rows(442, $providerFourFourTwo));
         $this->assertNull(MatchFormationLayout::rows('4-4-3', $players));
         $this->assertNull(MatchFormationLayout::rows('4-3-3', array_slice($players, 0, 10)));
         $players[0]['position'] = 'Forward';

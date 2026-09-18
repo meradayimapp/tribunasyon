@@ -111,6 +111,30 @@ class FootballLiveSyncTest extends TestCase
         $this->assertTrue($match->fresh()->is_live);
     }
 
+    public function test_missing_lineups_are_recovered_after_the_first_ten_minutes_of_a_live_match(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-09 18:00:00', 'UTC'));
+        $match = $this->match([
+            'kickoff_at' => '2026-09-09 17:00:00',
+            'status' => 'live',
+            'status_display' => "47'",
+            'is_live' => true,
+            'live_minute' => 47,
+        ]);
+        Cache::put('football:live:matches:2026-09-09', true, 55);
+        Http::fake([
+            'football.test/api/v1/live_match_details*' => Http::response($this->detailsResponse()),
+            'football.test/api/v1/lineups*' => Http::response($this->lineupsResponse()),
+        ]);
+
+        $this->artisan('football:sync-live')->assertExitCode(0);
+
+        $match->refresh();
+        $this->assertNotEmpty($match->lineups['home']['starting']);
+        $this->assertNotEmpty($match->lineups['away']['starting']);
+        Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/lineups'));
+    }
+
     public function test_real_provider_status_shapes_are_normalized_centrally(): void
     {
         $normalizer = app(ProviderMatchStatusNormalizer::class);

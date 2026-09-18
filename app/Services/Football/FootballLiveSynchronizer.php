@@ -245,9 +245,12 @@ class FootballLiveSynchronizer
     {
         return FootballMatch::query()
             ->whereBetween('football_matches.kickoff_at', [
-                $now->subMinutes(self::LINEUP_AFTER_KICKOFF_MINUTES)->format('Y-m-d H:i:s'),
+                $now->subHours(FootballMatch::LIVE_SYNC_WINDOW_HOURS)->format('Y-m-d H:i:s'),
                 $now->addMinutes(self::LINEUP_WINDOW_MINUTES)->format('Y-m-d H:i:s'),
             ])
+            ->where(fn (Builder $query): Builder => $query
+                ->where('football_matches.is_live', true)
+                ->orWhere('football_matches.kickoff_at', '>=', $now->subMinutes(self::LINEUP_AFTER_KICKOFF_MINUTES)->format('Y-m-d H:i:s')))
             ->where('football_matches.provider', LiveFootballApiService::PROVIDER)
             ->whereNotIn('football_matches.status', FootballMatch::TERMINAL_STATUSES)
             ->where(fn (Builder $query): Builder => $query
