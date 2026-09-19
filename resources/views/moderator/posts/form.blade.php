@@ -2,16 +2,17 @@
 @section('title', $post->exists ? 'Gönderiyi düzenle' : 'Hızlı gönderi')
 @section('content')
 @php
+    $scope = $scope ?? 'moderator';
     $existingMedia = $post->exists
         ? $post->media->map(fn ($media) => ['id' => $media->id, 'url' => app(\App\Services\MediaUrlResolver::class)->url($media->path)])->values()
         : collect();
 @endphp
 <div class="panel-shell">
-    <div class="eyebrow">Moderatör paneli</div>
+    <div class="eyebrow">{{ $scope === 'admin' ? 'Yönetim' : 'Moderatör paneli' }}</div>
     <h1 class="page-title">{{ $post->exists ? 'Gönderiyi düzenle' : 'Hızlı gönderi oluştur' }}</h1>
-    <x-panel-nav type="moderator" />
+    <x-panel-nav :type="$scope" />
 
-    <form class="surface" method="POST" enctype="multipart/form-data" action="{{ $post->exists ? route('moderator.posts.update', $post) : route('moderator.posts.store') }}" x-data="postMediaManager(@js($existingMedia), 10)">
+    <form class="surface" method="POST" enctype="multipart/form-data" action="{{ $post->exists ? route($scope.'.posts.update', $post) : route($scope.'.posts.store') }}" x-data="postMediaManager(@js($existingMedia), 10)">
         @csrf
         @if($post->exists)@method('PUT')@endif
         <input type="hidden" name="media_editor_present" value="0" x-init="$el.value = '1'">
@@ -22,6 +23,8 @@
             <div class="col-12"><label class="form-label">Gönderi metni</label><textarea class="form-control @error('body') is-invalid @enderror" name="body" rows="6" maxlength="5000" autofocus placeholder="Topluluğunuzla ne paylaşmak istiyorsunuz?">{{ old('body', $post->body) }}</textarea>@error('body')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
             <div class="col-md-6"><label class="form-label" for="seo-title">SEO başlığı <span class="muted fw-normal">(opsiyonel)</span></label><input id="seo-title" class="form-control @error('seo_title') is-invalid @enderror" name="seo_title" value="{{ old('seo_title', $post->seo_title) }}" maxlength="70" placeholder="Boşsa gönderiden otomatik üretilir">@error('seo_title')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
             <div class="col-md-6"><label class="form-label" for="seo-description">SEO açıklaması <span class="muted fw-normal">(opsiyonel)</span></label><textarea id="seo-description" class="form-control @error('seo_description') is-invalid @enderror" name="seo_description" rows="2" maxlength="160" placeholder="Boşsa gönderiden otomatik üretilir">{{ old('seo_description', $post->seo_description) }}</textarea>@error('seo_description')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+
+            @include('posts.partials.source-fields')
 
             <div class="col-12">
                 <label class="form-label" for="post-images">Görseller <span class="muted fw-normal">(en fazla 10 · her biri JPEG, PNG veya WebP · 8 MB)</span></label>
@@ -49,7 +52,7 @@
             </div>
         </div>
 
-        <div class="mt-4 d-flex gap-2"><button class="btn btn-primary">{{ $post->exists ? 'Değişiklikleri kaydet' : 'Gönderiyi kaydet' }}</button><a class="btn btn-light" href="{{ route('moderator.posts.index') }}">Vazgeç</a></div>
+        <div class="mt-4 d-flex gap-2"><button class="btn btn-primary">{{ $post->exists ? 'Değişiklikleri kaydet' : 'Gönderiyi kaydet' }}</button><a class="btn btn-light" href="{{ route($scope.'.posts.index') }}">Vazgeç</a></div>
     </form>
 </div>
 @endsection

@@ -1,5 +1,6 @@
 import './bootstrap';
 import 'bootstrap';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import appShell from './app-shell';
 
 window.appShell = appShell;
@@ -159,6 +160,26 @@ window.postMediaManager = (existingMedia = [], maximum = 10) => ({
         const transfer = new DataTransfer();
         this.items.filter((item) => item.kind === 'new').forEach((item) => transfer.items.add(item.file));
         this.$refs.mediaInput.files = transfer.files;
+    },
+});
+
+window.postSourcesEditor = (existingSources = [], maximum = 10) => ({
+    rows: (existingSources.length ? existingSources : [{ label: '', url: '' }]).map((source, index) => ({
+        key: `source-${index}`,
+        label: source.label ?? '',
+        url: source.url ?? '',
+    })),
+    maximum,
+    nextKey: existingSources.length + 1,
+
+    add() {
+        if (this.rows.length < this.maximum) {
+            this.rows.push({ key: `source-${this.nextKey++}`, label: '', url: '' });
+        }
+    },
+
+    remove(index) {
+        this.rows.splice(index, 1);
     },
 });
 

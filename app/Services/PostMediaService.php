@@ -14,9 +14,12 @@ class PostMediaService
 {
     public const MAX_MEDIA = 10;
 
-    public function __construct(private readonly MediaStorageService $storage) {}
+    public function __construct(
+        private readonly MediaStorageService $storage,
+        private readonly PostSourceService $sources,
+    ) {}
 
-    public function save(Post $post, array $attributes, array $uploads, ?array $requestedOrder): Post
+    public function save(Post $post, array $attributes, array $uploads, ?array $requestedOrder, ?array $sources = null): Post
     {
         $existing = $post->exists ? $post->media()->get()->keyBy('id') : collect();
         $order = $this->normalizeOrder($existing, $uploads, $requestedOrder);
@@ -27,7 +30,7 @@ class PostMediaService
                 $storedPaths[] = $this->storage->store($upload, 'posts');
             }
 
-            $removedPaths = DB::transaction(function () use ($post, $attributes, $existing, $order, $storedPaths): array {
+            $removedPaths = DB::transaction(function () use ($post, $attributes, $existing, $order, $storedPaths, $sources): array {
                 $attributes['type'] = count($order) > 0 ? PostType::Image : PostType::Text;
                 $attributes['image_path'] = null;
                 $post->fill($attributes)->save();
@@ -59,6 +62,10 @@ class PostMediaService
                     $post->media()->create(['type' => 'image', 'path' => $storedPaths[$newIndex], 'sort_order' => $sortOrder]);
                 }
 
+                if ($sources !== null) {
+                    $this->sources->sync($post, $sources);
+                }
+
                 return $removed->pluck('path')->all();
             });
         } catch (Throwable $exception) {
@@ -71,7 +78,7 @@ class PostMediaService
             $this->deleteIfUnused($path);
         }
 
-        return $post->refresh()->load('media');
+        return $post->refresh()->load(['media', 'sources']);
     }
 
     private function normalizeOrder(Collection $existing, array $uploads, ?array $requestedOrder): array

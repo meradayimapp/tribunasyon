@@ -75,7 +75,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::resource('organizations', Admin\OrganizationController::class)->except('show');
     Route::resource('users', Admin\UserController::class)->only(['index', 'edit', 'update']);
     Route::resource('moderators', Admin\ModeratorController::class)->only(['index', 'edit', 'update'])->parameters(['moderators' => 'user']);
-    Route::resource('posts', Admin\PostController::class)->only(['index', 'edit', 'update', 'destroy']);
+    Route::resource('posts', Admin\PostController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     Route::post('posts/{post}/restore', [Admin\PostController::class, 'restore'])->name('posts.restore');
     Route::resource('comments', Admin\CommentController::class)->only(['index', 'destroy']);
     Route::post('comments/{comment}/restore', [Admin\CommentController::class, 'restore'])->name('comments.restore');

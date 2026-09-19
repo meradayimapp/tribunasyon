@@ -70,6 +70,11 @@ class Post extends Model
         return $this->hasMany(PostMedia::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function sources(): HasMany
+    {
+        return $this->hasMany(PostSource::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function coverMedia(): HasOne
     {
         return $this->hasOne(PostMedia::class)->ofMany('sort_order', 'min');

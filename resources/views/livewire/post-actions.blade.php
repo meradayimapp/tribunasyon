@@ -6,6 +6,7 @@
         </button>
         <a class="icon-action" href="{{ route('posts.show', [$post->team, $post]) }}#yorumlar" aria-label="{{ number_format($commentsCount, 0, ',', '.') }} yorumu aç"><x-ui.icon name="comment" /></a>
         <button type="button" class="icon-action" @click="share" aria-label="Gönderiyi paylaş"><x-ui.icon name="send" /></button>
+        <x-post-sources :post="$post" />
         <span class="share-feedback" x-show="shared" x-transition.opacity x-cloak>Bağlantı kopyalandı</span>
     </div>
     <div class="likes-summary">{{ number_format($likesCount, 0, ',', '.') }} beğeni</div>
