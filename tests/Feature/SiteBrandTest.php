@@ -10,6 +10,15 @@ use Tests\TestCase;
 
 class SiteBrandTest extends TestCase
 {
+    public function test_mobile_small_logo_has_readable_aspect_ratio_safe_dimensions_without_changing_desktop_logo(): void
+    {
+        $styles = file_get_contents(resource_path('scss/app.scss'));
+
+        $this->assertIsString($styles);
+        $this->assertStringContainsString('.site-brand-full { width: auto; max-width: 154px; height: 38px;', $styles);
+        $this->assertStringContainsString('.site-brand--mobile .site-brand-compact { width: clamp(88px, 24vw, 110px); max-height: 32px; height: auto; object-fit: contain; object-position: left center; }', $styles);
+    }
+
     #[DataProvider('logoCases')]
     public function test_logo_resolution_and_rendering(array $paths, ?string $light, ?string $dark, bool $compact): void
     {

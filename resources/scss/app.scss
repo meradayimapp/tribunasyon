@@ -1086,7 +1086,7 @@ html:root { --livewire-progress-bar-color: var(--brand-cyan); }
   .mobile-title { overflow: hidden; padding-left: 6px; font-size: 1.05rem; font-weight: 600; letter-spacing: -.025em; text-overflow: ellipsis; white-space: nowrap; }
   .site-brand--mobile { max-width: 100%; overflow: hidden; padding-left: 6px; gap: 8px; font-size: 1.02rem; font-weight: 600; letter-spacing: -.025em; }
   .site-brand--mobile .site-brand-full { height: 32px; max-width: min(100%, 180px); }
-  .site-brand--mobile .site-brand-compact { width: 32px; object-position: center; }
+  .site-brand--mobile .site-brand-compact { width: clamp(88px, 24vw, 110px); max-height: 32px; height: auto; object-fit: contain; object-position: left center; }
   .site-brand--mobile .site-brand-icon { width: 29px; height: 29px; flex-basis: 29px; }
   .site-brand--mobile .brand-mark { width: 29px; height: 29px; border-radius: 9px; box-shadow: none; }
   .site-brand--mobile .brand-mark .ui-icon { font-size: .95rem; }
