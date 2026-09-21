@@ -18,6 +18,7 @@
             <div class="form-text">3-30 karakter; harf, rakam, alt çizgi, tire ve nokta kullanabilirsin.</div>
         </div>
         <button class="btn btn-primary auth-primary-action w-100" type="submit">Kaydı tamamla</button>
+        <p class="auth-legal-consent">Kaydı tamamlayarak <a href="{{ route('legal.terms') }}">Kullanım Koşulları'nı</a> ve <a href="{{ route('legal.privacy') }}">Gizlilik Politikası'nı</a> kabul etmiş olursunuz.</p>
     </form>
 </x-auth-panel>
 @endsection

@@ -468,6 +468,34 @@ html:root { --livewire-progress-bar-color: var(--brand-cyan); }
 .auth-switch { margin: 26px 0 0; color: var(--muted); font-size: .8rem; text-align: center; }
 .auth-switch a { color: var(--accent); font-weight: 700; }
 .auth-switch a:hover { text-decoration: underline; }
+.auth-legal-consent { margin: 13px 8px 0; color: var(--muted); font-size: .68rem; line-height: 1.55; text-align: center; }
+.auth-legal-consent a { color: var(--accent); font-weight: 650; }
+.auth-legal-consent a:hover { text-decoration: underline; }
+.public-footer { width: min(100%, 1120px); margin: 28px auto 0; padding: 16px 0 4px; border-top: 1px solid var(--line); }
+.public-footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 22px; }
+.public-footer a { color: var(--muted); font-size: .72rem; font-weight: 600; }
+.public-footer a:hover { color: var(--accent); }
+.legal-page { width: min(100%, 850px); overflow: hidden; margin: 0 auto; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 22px 60px rgba(7, 10, 16, .08); }
+.legal-hero { padding: clamp(28px, 6vw, 56px); border-bottom: 1px solid var(--line); background: linear-gradient(145deg, color-mix(in srgb, var(--accent-soft) 68%, var(--surface)), var(--surface)); }
+.legal-hero h1 { margin: 9px 0 12px; font-size: clamp(2rem, 5vw, 3.25rem); font-weight: 760; letter-spacing: -.05em; }
+.legal-hero p { max-width: 670px; margin: 0; color: var(--muted); font-size: clamp(.9rem, 2vw, 1.05rem); line-height: 1.7; }
+.legal-hero small { display: block; margin-top: 18px; color: var(--muted); font-size: .72rem; }
+.legal-toc { margin: clamp(22px, 5vw, 42px) clamp(22px, 6vw, 56px) 0; padding: 20px 22px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface-soft); }
+.legal-toc > strong { display: block; margin-bottom: 10px; font-size: .8rem; }
+.legal-toc ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 24px; margin: 0; padding-left: 20px; }
+.legal-toc a { color: var(--muted); font-size: .74rem; line-height: 1.45; }
+.legal-toc a:hover { color: var(--accent); }
+.legal-content { padding: 8px clamp(22px, 6vw, 56px) clamp(32px, 6vw, 58px); }
+.legal-content section { padding-top: clamp(28px, 5vw, 42px); scroll-margin-top: 20px; }
+.legal-content section + section { margin-top: clamp(24px, 4vw, 34px); border-top: 1px solid var(--line); }
+.legal-content h2 { margin: 0 0 13px; font-size: clamp(1.02rem, 2vw, 1.22rem); font-weight: 730; letter-spacing: -.02em; }
+.legal-content p, .legal-content li { color: var(--muted); font-size: .88rem; line-height: 1.85; }
+.legal-content p { margin: 0; }
+.legal-content p + p, .legal-content p + ul { margin-top: 12px; }
+.legal-content ul { margin-bottom: 0; padding-left: 21px; }
+.legal-content li + li { margin-top: 5px; }
+.legal-content a { color: var(--accent); font-weight: 650; overflow-wrap: anywhere; }
+.legal-content a:hover { text-decoration: underline; }
 .onboarding-card { width: min(100%, 940px); margin: 0 auto; padding: clamp(24px, 4vw, 44px); border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 22px 60px rgba(7, 10, 16, .08); }
 .onboarding-heading { max-width: 650px; }
 .onboarding-search { height: 48px; display: flex; align-items: center; gap: 10px; margin: 28px 0 20px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--input-bg); }
@@ -1157,6 +1185,12 @@ html:root { --livewire-progress-bar-color: var(--brand-cyan); }
   .auth-title { font-size: 1.72rem; }
   .auth-lead { margin-bottom: 24px; }
   .auth-switch { margin-top: 22px; }
+  .public-footer { margin-top: 20px; padding-right: 8px; padding-left: 8px; }
+  .legal-page { border-radius: 17px; box-shadow: none; }
+  .legal-hero { padding: 28px 20px; }
+  .legal-toc { margin: 20px 16px 0; padding: 17px 18px; }
+  .legal-toc ol { grid-template-columns: 1fr; }
+  .legal-content { padding-right: 20px; padding-left: 20px; }
   .onboarding-card { padding: 24px 15px; border-radius: 17px; box-shadow: none; }
   .onboarding-search { margin: 22px 0 16px; }
   .onboarding-team-grid { max-height: 52vh; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }

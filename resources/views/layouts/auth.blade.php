@@ -36,6 +36,13 @@
     <main class="auth-main">
         @yield('content')
     </main>
+
+    <footer class="public-footer">
+        <nav aria-label="Yasal bağlantılar">
+            <a href="{{ route('legal.privacy') }}">Gizlilik Politikası</a>
+            <a href="{{ route('legal.terms') }}">Kullanım Koşulları</a>
+        </nav>
+    </footer>
 </div>
 @livewireScripts
 </body>

@@ -44,6 +44,7 @@
             </div>
         </div>
         <button class="btn btn-primary auth-primary-action w-100" type="submit">Kayıt ol</button>
+        <p class="auth-legal-consent">Kayıt olarak <a href="{{ route('legal.terms') }}">Kullanım Koşulları'nı</a> ve <a href="{{ route('legal.privacy') }}">Gizlilik Politikası'nı</a> kabul etmiş olursunuz.</p>
     </form>
 
     <div class="auth-divider"><span>veya</span></div>
