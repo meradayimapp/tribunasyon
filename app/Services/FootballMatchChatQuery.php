@@ -61,6 +61,6 @@ class FootballMatchChatQuery
     {
         return $match->chatMessages()
             ->select(['id', 'football_match_id', 'user_id', 'body', 'created_at'])
-            ->with('user:id,name,username,avatar_path,role');
+            ->with('user:id,name,username,avatar_path,google_avatar_url,anonymized_at,role');
     }
 }

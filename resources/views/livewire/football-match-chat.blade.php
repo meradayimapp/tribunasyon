@@ -26,12 +26,12 @@
     <div class="player-chat-log" x-ref="log" @scroll.passive="onScroll()" role="log" aria-live="polite" aria-label="Maç sohbeti mesajları">
         @forelse($messages as $message)
             <article class="player-chat-message role-{{ $message['user']['role'] }}" wire:key="football-match-message-{{ $message['id'] }}">
-                <a href="{{ route('profile.show', $message['user']['username']) }}" class="avatar avatar-sm" aria-label="{{ $message['user']['name'] }} profili">
+                @if($message['user']['is_anonymized'])<span class="avatar avatar-sm" aria-label="Silinmiş kullanıcı">@else<a href="{{ route('profile.show', $message['user']['username']) }}" class="avatar avatar-sm" aria-label="{{ $message['user']['name'] }} profili">@endif
                     @if($message['user']['avatar_url'])<img src="{{ $message['user']['avatar_url'] }}" alt="{{ $message['user']['name'] }} profil fotoğrafı">@else{{ $message['user']['initials'] }}@endif
-                </a>
+                @if($message['user']['is_anonymized'])</span>@else</a>@endif
                 <div class="player-chat-message-body">
                     <div class="player-chat-message-meta">
-                        <a href="{{ route('profile.show', $message['user']['username']) }}">{{ '@'.$message['user']['username'] }}</a>
+                        @if($message['user']['is_anonymized'])<span>Silinmiş kullanıcı</span>@else<a href="{{ route('profile.show', $message['user']['username']) }}">{{ '@'.$message['user']['username'] }}</a>@endif
                         @if($message['user']['role_label'])
                             <span class="chat-role-badge"><x-ui.icon :name="$message['user']['role'] === 'admin' ? 'check-circle' : 'sparkle'" />{{ $message['user']['role_label'] }}</span>
                         @endif

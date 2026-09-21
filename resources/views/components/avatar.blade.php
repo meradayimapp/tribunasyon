@@ -1,8 +1,8 @@
 @props(['user', 'size' => 'sm'])
 <span class="avatar avatar-{{ $size }}">
-    @if($user->avatar_path)
-        <img src="{{ app(\App\Services\MediaUrlResolver::class)->url($user->avatar_path) }}" alt="{{ $user->name }} profil fotoğrafı">
+    @if($user->displayAvatarUrl())
+        <img src="{{ $user->displayAvatarUrl() }}" alt="{{ $user->displayName() }} profil fotoğrafı">
     @else
-        {{ mb_strtoupper(mb_substr($user->name, 0, 2)) }}
+        {{ $user->initials() }}
     @endif
 </span>

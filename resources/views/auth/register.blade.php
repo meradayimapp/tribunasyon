@@ -17,7 +17,7 @@
             <label class="form-label" for="username">Kullanıcı adı</label>
             <div class="input-group">
                 <span class="input-group-text">@</span>
-                <input id="username" name="username" value="{{ old('username') }}" minlength="3" maxlength="40" autocomplete="username" required class="form-control @error('username') is-invalid @enderror">
+                <input id="username" name="username" value="{{ old('username') }}" minlength="3" maxlength="30" autocomplete="username" required class="form-control @error('username') is-invalid @enderror">
                 @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
         </div>

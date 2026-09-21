@@ -74,6 +74,7 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create([
             'email' => 'moderator@example.com',
             'role' => UserRole::Moderator,
+            'avatar_path' => 'avatars/manual.jpg',
         ]);
         Socialite::fake('google', SocialiteUser::fake([
             'id' => 'google-moderator',
@@ -92,6 +93,7 @@ class AuthenticationTest extends TestCase
         $user->refresh();
         $this->assertSame('google-moderator', $user->google_id);
         $this->assertSame('https://example.com/moderator.jpg', $user->google_avatar_url);
+        $this->assertSame('avatars/manual.jpg', $user->avatar_path);
         $this->assertSame(UserRole::Moderator, $user->role);
     }
 
@@ -117,7 +119,7 @@ class AuthenticationTest extends TestCase
         $this->assertSame(UserRole::Admin, $user->role);
     }
 
-    public function test_first_verified_google_login_creates_active_member_and_redirects_to_onboarding(): void
+    public function test_first_verified_google_login_requires_username_before_creating_account(): void
     {
         Socialite::fake('google', SocialiteUser::fake([
             'id' => 'google-new-member',
@@ -130,6 +132,19 @@ class AuthenticationTest extends TestCase
         ]));
 
         $this->get(route('auth.google.callback'))
+            ->assertRedirect(route('auth.google.username.create'));
+
+        $this->assertGuest();
+        $this->assertDatabaseCount('users', 0);
+        $pending = session('auth.google.pending_registration');
+        $this->assertIsArray($pending);
+        $this->assertArrayNotHasKey('token', $pending);
+        $this->assertArrayNotHasKey('refreshToken', $pending);
+        $this->get(route('auth.google.username.create'))
+            ->assertOk()
+            ->assertSee('Kullanıcı adını seç');
+
+        $this->post(route('auth.google.username.store'), ['username' => 'GoogleFan'])
             ->assertRedirect(route('onboarding.teams.edit'));
 
         $user = User::whereEmail('google@example.com')->firstOrFail();
@@ -137,13 +152,15 @@ class AuthenticationTest extends TestCase
         $this->assertSame(UserRole::Member, $user->role);
         $this->assertSame(UserStatus::Active, $user->status);
         $this->assertNotNull($user->email_verified_at);
-        $this->assertSame('google', $user->username);
+        $this->assertSame('googlefan', $user->username);
         $this->assertSame('google-new-member', $user->google_id);
         $this->assertSame('https://example.com/google-member.jpg', $user->google_avatar_url);
         $this->assertTrue(Hash::isHashed($user->password));
+        $this->assertNull($user->password_set_at);
         $this->assertNotSame('must-not-be-stored', $user->password);
         $this->assertArrayNotHasKey('token', $user->getAttributes());
         $this->assertArrayNotHasKey('refreshToken', $user->getAttributes());
+        $this->assertNull(session('auth.google.pending_registration'));
     }
 
     public function test_suspended_user_cannot_bypass_status_with_google(): void
@@ -195,7 +212,9 @@ class AuthenticationTest extends TestCase
         ]);
         Socialite::fake('google', $googleUser);
 
-        $this->get(route('auth.google.callback'))->assertRedirect(route('onboarding.teams.edit'));
+        $this->get(route('auth.google.callback'))->assertRedirect(route('auth.google.username.create'));
+        $this->post(route('auth.google.username.store'), ['username' => 'repeat_user'])
+            ->assertRedirect(route('onboarding.teams.edit'));
         Auth::logout();
 
         Socialite::fake('google', $googleUser);
@@ -239,5 +258,41 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
         $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_unsafe_google_avatar_is_not_persisted(): void
+    {
+        Socialite::fake('google', SocialiteUser::fake([
+            'id' => 'google-unsafe-avatar',
+            'email' => 'unsafe-avatar@example.com',
+            'avatar' => 'http://example.com/avatar.jpg',
+            'email_verified' => true,
+        ]));
+
+        $this->get(route('auth.google.callback'))
+            ->assertRedirect(route('auth.google.username.create'));
+        $this->post(route('auth.google.username.store'), ['username' => 'safe_avatar_user'])
+            ->assertRedirect(route('onboarding.teams.edit'));
+
+        $this->assertNull(User::whereEmail('unsafe-avatar@example.com')->firstOrFail()->google_avatar_url);
+    }
+
+    public function test_expired_google_registration_session_cannot_create_an_account(): void
+    {
+        $pending = [
+            'google_id' => 'expired-google-id',
+            'email' => 'expired@example.com',
+            'name' => 'Expired User',
+            'avatar_url' => null,
+            'expires_at' => now()->subSecond()->timestamp,
+        ];
+
+        $this->withSession(['auth.google.pending_registration' => $pending])
+            ->post(route('auth.google.username.store'), ['username' => 'expired_user'])
+            ->assertRedirect(route('register'));
+
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'expired@example.com']);
+        $this->assertNull(session('auth.google.pending_registration'));
     }
 }

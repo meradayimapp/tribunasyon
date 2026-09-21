@@ -6,7 +6,6 @@ use App\Enums\UserRole;
 use App\Models\FootballMatch;
 use App\Models\FootballMatchChatMessage;
 use App\Services\FootballMatchChatQuery;
-use App\Services\MediaUrlResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -131,7 +130,7 @@ class FootballMatchChat extends Component
         RateLimiter::hit($burstKey, 3);
         RateLimiter::hit($minuteKey, 60);
         $message = $this->footballMatch->chatMessages()->create(['user_id' => $userId, 'body' => $this->body]);
-        $message->load('user:id,name,username,avatar_path,role');
+        $message->load('user:id,name,username,avatar_path,google_avatar_url,anonymized_at,role');
         $this->reset('body');
 
         if ($this->viewingHistory) {
@@ -191,10 +190,11 @@ class FootballMatchChat extends Component
                 'time' => $message->created_at->format('H:i'),
                 'can_delete' => $this->canDeleteMessage($message, $viewerId),
                 'user' => [
-                    'name' => $message->user->name,
-                    'username' => $message->user->username,
-                    'avatar_url' => app(MediaUrlResolver::class)->url($message->user->avatar_path),
-                    'initials' => mb_strtoupper(mb_substr($message->user->name, 0, 2)),
+                    'name' => $message->user->displayName(),
+                    'username' => $message->user->isAnonymized() ? null : $message->user->username,
+                    'avatar_url' => $message->user->displayAvatarUrl(),
+                    'initials' => $message->user->initials(),
+                    'is_anonymized' => $message->user->isAnonymized(),
                     'role' => $role->value,
                     'role_label' => match ($role) {
                         UserRole::Admin => 'Yönetici',

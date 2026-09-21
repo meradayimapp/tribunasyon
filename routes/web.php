@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Auth\GoogleRegistrationController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -45,6 +47,8 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/giris', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
     Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+    Route::get('/kayit/google/kullanici-adi', [GoogleRegistrationController::class, 'create'])->name('auth.google.username.create');
+    Route::post('/kayit/google/kullanici-adi', [GoogleRegistrationController::class, 'store'])->name('auth.google.username.store');
     Route::get('/sifremi-unuttum', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/sifremi-unuttum', [PasswordResetLinkController::class, 'store'])->middleware('throttle:3,1')->name('password.email');
     Route::get('/sifre-sifirla/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
@@ -59,6 +63,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/profil-duzenle', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profil-duzenle', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profil-sifre', [ProfileController::class, 'password'])->name('profile.password');
+    Route::delete('/hesap', [AccountController::class, 'destroy'])->name('account.destroy');
 });
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function (): void {

@@ -2,17 +2,13 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Database\QueryException;
+use App\Support\PendingGoogleRegistration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -38,100 +34,79 @@ class GoogleAuthController extends Controller
             $emailVerified = ($googleUser->getRaw()['email_verified'] ?? null) === true;
 
             if ($googleId === '' || mb_strlen($googleId) > 255 || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                return $this->failed();
+                return $this->failed($request);
             }
 
             $user = User::query()->where('google_id', $googleId)->first();
-            $isNewUser = false;
 
             if (! $user) {
                 if (! $emailVerified) {
-                    return $this->failed();
+                    return $this->failed($request);
                 }
 
-                [$user, $isNewUser] = $this->linkOrCreateUser($googleUser, $googleId, $email);
+                $user = $this->linkExistingUser($googleId, $email, $this->avatarUrl($googleUser));
             }
+
+            if ($user) {
+                PendingGoogleRegistration::forget($request);
+
+                if (! $user->isActive()) {
+                    return redirect()->route('login')->withErrors(['email' => 'Bu hesap askıya alınmış.']);
+                }
+
+                Auth::login($user, true);
+                $request->session()->regenerate();
+
+                return redirect()->intended(route('home'));
+            }
+
+            PendingGoogleRegistration::put($request, [
+                'google_id' => $googleId,
+                'email' => $email,
+                'name' => mb_substr(trim((string) $googleUser->getName()) ?: 'Google Kullanıcısı', 0, 100),
+                'avatar_url' => $this->avatarUrl($googleUser),
+            ]);
+
+            return redirect()->route('auth.google.username.create');
         } catch (Throwable $exception) {
+            PendingGoogleRegistration::forget($request);
             Log::warning('Google OAuth callback failed.', [
                 'exception' => $exception::class,
             ]);
 
-            return $this->failed();
+            return $this->failed($request);
         }
-
-        if (! $user->isActive()) {
-            return redirect()->route('login')->withErrors(['email' => 'Bu hesap askıya alınmış.']);
-        }
-
-        if ($isNewUser) {
-            event(new Registered($user));
-        }
-
-        Auth::login($user, true);
-        $request->session()->regenerate();
-
-        return $isNewUser
-            ? redirect()->route('onboarding.teams.edit')
-            : redirect()->intended(route('home'));
     }
 
-    /**
-     * @return array{0: User, 1: bool}
-     */
-    private function linkOrCreateUser(GoogleUser $googleUser, string $googleId, string $email): array
+    private function linkExistingUser(string $googleId, string $email, ?string $avatarUrl): ?User
     {
-        try {
-            return DB::transaction(function () use ($googleUser, $googleId, $email): array {
-                $user = User::query()->where('google_id', $googleId)->lockForUpdate()->first();
-
-                if ($user) {
-                    return [$user, false];
-                }
-
-                $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->lockForUpdate()->first();
-
-                if ($user) {
-                    if ($user->google_id !== null && $user->google_id !== $googleId) {
-                        throw new RuntimeException('Google account cannot be linked.');
-                    }
-
-                    if (! $user->isActive()) {
-                        return [$user, false];
-                    }
-
-                    $user->forceFill([
-                        'google_id' => $googleId,
-                        'google_avatar_url' => $this->avatarUrl($googleUser),
-                        'email_verified_at' => $user->email_verified_at ?? now(),
-                    ])->save();
-
-                    return [$user, false];
-                }
-
-                $user = new User([
-                    'name' => mb_substr(trim((string) $googleUser->getName()) ?: 'Google Kullanıcısı', 0, 100),
-                    'username' => $this->uniqueUsername($email),
-                    'email' => $email,
-                    'password' => Hash::make(Str::random(64)),
-                    'google_id' => $googleId,
-                    'google_avatar_url' => $this->avatarUrl($googleUser),
-                    'role' => UserRole::Member,
-                    'status' => UserStatus::Active,
-                ]);
-                $user->email_verified_at = now();
-                $user->save();
-
-                return [$user, true];
-            });
-        } catch (QueryException $exception) {
-            $user = User::query()->where('google_id', $googleId)->first();
+        return DB::transaction(function () use ($googleId, $email, $avatarUrl): ?User {
+            $user = User::query()->where('google_id', $googleId)->lockForUpdate()->first();
 
             if ($user) {
-                return [$user, false];
+                return $user;
             }
 
-            throw $exception;
-        }
+            $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->lockForUpdate()->first();
+
+            if (! $user) {
+                return null;
+            }
+
+            if ($user->google_id !== null && $user->google_id !== $googleId) {
+                throw new RuntimeException('Google account cannot be linked.');
+            }
+
+            if ($user->isActive()) {
+                $user->forceFill([
+                    'google_id' => $googleId,
+                    'google_avatar_url' => $avatarUrl,
+                    'email_verified_at' => $user->email_verified_at ?? now(),
+                ])->save();
+            }
+
+            return $user;
+        });
     }
 
     private function avatarUrl(GoogleUser $googleUser): ?string
@@ -148,24 +123,10 @@ class GoogleAuthController extends Controller
         return $avatar;
     }
 
-    private function uniqueUsername(string $email): string
+    private function failed(Request $request): RedirectResponse
     {
-        $base = Str::slug(Str::before($email, '@'), '_');
-        $base = mb_substr($base ?: 'taraftar', 0, 36);
-        $base = mb_strlen($base) >= 3 ? $base : 'taraftar_'.$base;
-        $candidate = $base;
-        $suffix = 1;
+        PendingGoogleRegistration::forget($request);
 
-        while (User::query()->where('username', $candidate)->exists()) {
-            $suffixText = '_'.$suffix++;
-            $candidate = mb_substr($base, 0, 40 - mb_strlen($suffixText)).$suffixText;
-        }
-
-        return $candidate;
-    }
-
-    private function failed(): RedirectResponse
-    {
         return redirect()->route('login')->withErrors(['email' => self::FAILURE_MESSAGE]);
     }
 }

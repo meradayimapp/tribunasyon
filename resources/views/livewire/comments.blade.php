@@ -29,7 +29,7 @@
                 <div class="comment">
                     <x-avatar :user="$comment->user" size="sm" />
                     <div class="comment-content">
-                        <a class="comment-username" href="{{ route('profile.show', $comment->user) }}">{{ '@'.$comment->user->username }}</a>
+                        @if($comment->user->isAnonymized())<span class="comment-username">Silinmiş kullanıcı</span>@else<a class="comment-username" href="{{ route('profile.show', $comment->user) }}">{{ '@'.$comment->user->username }}</a>@endif
                         <p class="comment-text">{{ $comment->body }}</p>
                         <div class="comment-actions">
                             <time datetime="{{ $comment->created_at->toIso8601String() }}">{{ $comment->created_at->diffForHumans() }}</time>
@@ -56,7 +56,7 @@
                             <article class="comment reply" wire:key="reply-{{ $reply->id }}">
                                 <x-avatar :user="$reply->user" size="sm" />
                                 <div class="comment-content">
-                                    <a class="comment-username" href="{{ route('profile.show', $reply->user) }}">{{ '@'.$reply->user->username }}</a>
+                                    @if($reply->user->isAnonymized())<span class="comment-username">Silinmiş kullanıcı</span>@else<a class="comment-username" href="{{ route('profile.show', $reply->user) }}">{{ '@'.$reply->user->username }}</a>@endif
                                     <p class="comment-text">{{ $reply->body }}</p>
                                     <div class="comment-actions">
                                         <time datetime="{{ $reply->created_at->toIso8601String() }}">{{ $reply->created_at->diffForHumans() }}</time>

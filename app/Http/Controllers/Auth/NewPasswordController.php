@@ -25,7 +25,11 @@ class NewPasswordController extends Controller
     {
         $data = $request->validate(['token' => ['required'], 'email' => ['required', 'email'], 'password' => ['required', 'confirmed', PasswordRule::defaults()]]);
         $status = Password::reset($data, function (User $user, string $password): void {
-            $user->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'password_set_at' => now(),
+                'remember_token' => Str::random(60),
+            ])->save();
             event(new PasswordReset($user));
         });
 
