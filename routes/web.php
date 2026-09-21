@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\GoogleOAuthController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -43,8 +43,8 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/kayit', [RegisteredUserController::class, 'store']);
     Route::get('/giris', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/giris', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:10,1');
-    Route::get('/auth/google', [GoogleOAuthController::class, 'redirect'])->name('auth.google.redirect');
-    Route::get('/auth/google/callback', [GoogleOAuthController::class, 'callback'])->name('auth.google.callback');
+    Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
     Route::get('/sifremi-unuttum', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/sifremi-unuttum', [PasswordResetLinkController::class, 'store'])->middleware('throttle:3,1')->name('password.email');
     Route::get('/sifre-sifirla/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
