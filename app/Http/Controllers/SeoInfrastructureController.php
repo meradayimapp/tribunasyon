@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FootballCompetition;
 use App\Models\FootballMatch;
 use App\Models\Post;
 use App\Models\Team;
@@ -18,6 +19,15 @@ class SeoInfrastructureController extends Controller
             echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'.PHP_EOL;
 
             $this->writeUrl($seoService->canonical('/'));
+
+            FootballCompetition::query()
+                ->active()
+                ->select(['id', 'slug', 'updated_at'])
+                ->lazyById(100)
+                ->each(fn (FootballCompetition $competition) => $this->writeUrl(
+                    $seoService->canonical(route('competitions.show', $competition->slug, false)),
+                    $competition->updated_at?->toAtomString(),
+                ));
 
             Team::query()
                 ->active()

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Data\SeoData;
 use App\Enums\TeamStatus;
+use App\Models\FootballCompetition;
 use App\Models\FootballMatch;
 use App\Models\Post;
 use App\Models\Team;
@@ -130,6 +131,23 @@ class SeoService
             image: $image,
             robots: $match->isIndexable() ? 'index, follow' : 'noindex, nofollow',
             structuredData: $event,
+        );
+    }
+
+    public function competition(FootballCompetition $competition, ?string $season = null): SeoData
+    {
+        $name = $competition->provider_league_id === FootballCompetition::NATIONS_LEAGUE_PROVIDER_ID
+            ? 'UEFA Uluslar Ligi'
+            : ($competition->display_name ?: $competition->name);
+        $season = $season ?: $competition->current_season ?: '';
+        $seasonLabel = $season !== '' ? ' '.$season : '';
+
+        return new SeoData(
+            title: "{$name}{$seasonLabel} Fikstür, Puan Durumu ve Maçlar | {$this->siteName()}",
+            description: "{$name}{$seasonLabel} fikstürü, canlı maçlar, sonuçlar, puan durumu ve Türkiye maçlarını {$this->siteName()}’da takip edin.",
+            canonical: $this->canonical(route('competitions.show', $competition->slug, false)),
+            image: $this->absolute($competition->logoUrl()),
+            robots: $competition->is_active ? 'index, follow' : 'noindex, nofollow',
         );
     }
 

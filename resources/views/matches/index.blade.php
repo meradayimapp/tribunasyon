@@ -19,6 +19,13 @@
         @endforeach
     </nav>
 
+    @if($selectedCompetition?->provider_league_id === \App\Models\FootballCompetition::NATIONS_LEAGUE_PROVIDER_ID)
+        <a class="competition-center-link" href="{{ route('competitions.show', ['competition' => 'uluslar-ligi']) }}">
+            <span><x-ui.icon name="trophy" /><span><strong>Uluslar Ligi Merkezi</strong><small>Tüm fikstür ve puan durumu</small></span></span>
+            <x-ui.icon name="chevron-right" />
+        </a>
+    @endif
+
     @if($selectedCompetition === null)
         <div class="empty-state mx-3 mx-md-0">
             <x-ui.icon name="calendar" />

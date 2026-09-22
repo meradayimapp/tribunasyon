@@ -33,7 +33,7 @@
             <a class="side-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><x-ui.icon name="home" /><span>Akış</span></a>
             <a class="side-link {{ request()->routeIs('teams.*') ? 'active' : '' }}" href="{{ route('teams.index') }}"><x-ui.icon name="teams" /><span>Takımlar</span></a>
             <a class="side-link {{ request()->routeIs('players.*') ? 'active' : '' }}" href="{{ route('players.index') }}"><x-ui.icon name="person" /><span>Oyuncular</span></a>
-            <a class="side-link {{ request()->routeIs('matches.*') ? 'active' : '' }}" href="{{ route('matches.index') }}"><x-ui.icon name="football" /><span>Maçlar</span></a>
+            <a class="side-link {{ request()->routeIs('matches.*', 'competitions.*') ? 'active' : '' }}" href="{{ route('matches.index') }}"><x-ui.icon name="football" /><span>Maçlar</span></a>
             @auth
                 <a class="side-link {{ request()->routeIs('profile.*') ? 'active' : '' }}" href="{{ route('profile.show', auth()->user()) }}"><x-ui.icon name="person" /><span>Profil</span></a>
                 @if(auth()->user()->isAdmin())

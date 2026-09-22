@@ -24,6 +24,7 @@ class FootballCompetitionSeeder extends Seeder
                 'display_name' => 'Uluslar Ligi',
                 'slug' => 'uluslar-ligi',
                 'country' => null,
+                'current_season' => '2026/2027',
                 'sort_order' => 15,
             ],
             [

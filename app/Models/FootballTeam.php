@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FootballTeam extends Model
 {
+    public const TURKEY_NATIONAL_PROVIDER_ID = '9s2kpeunkes0g17l95r3t91j6';
+
     protected $fillable = [
         'provider',
         'provider_team_id',

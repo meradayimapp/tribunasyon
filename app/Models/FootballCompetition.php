@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\MediaUrlResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -67,5 +68,10 @@ class FootballCompetition extends Model
     public function matches(): HasMany
     {
         return $this->hasMany(FootballMatch::class, 'competition_id');
+    }
+
+    public function logoUrl(): ?string
+    {
+        return $this->provider_logo_url ?: app(MediaUrlResolver::class)->url($this->logo_path);
     }
 }

@@ -37,6 +37,7 @@ return [
     'live_football_api' => [
         'key' => env('LIVE_FOOTBALL_API_KEY'),
         'base_url' => env('LIVE_FOOTBALL_API_BASE_URL', 'https://live-football-api.com/api/v1'),
+        'nations_league_turkey_team_id' => env('LIVE_FOOTBALL_NATIONS_LEAGUE_TURKEY_TEAM_ID'),
     ],
 
     'slack' => [

@@ -722,6 +722,97 @@ window.todayScoresRibbon = (url, initialMatches, pollingEnabled = false) => ({
     },
 });
 
+window.competitionLiveState = (url, initialStates = {}) => ({
+    url,
+    states: initialStates && typeof initialStates === 'object' ? initialStates : {},
+    timer: null,
+
+    init() {
+        if (this.pollingIds.length > 0 && !document.hidden) this.start();
+    },
+
+    destroy() {
+        this.stop();
+    },
+
+    get pollingIds() {
+        return [...new Set(Object.entries(this.states)
+            .filter(([, state]) => Boolean(state?.polling_active) && !state?.is_finished)
+            .map(([id]) => Number(id))
+            .filter(Number.isInteger))];
+    },
+
+    stateFor(id) {
+        return this.states[String(id)] ?? this.states[id] ?? null;
+    },
+
+    isLive(id, fallback = false) {
+        return this.stateFor(id)?.is_live ?? fallback;
+    },
+
+    matchScore(id, scoreKnown = false, initialHome = null, initialAway = null) {
+        const state = this.stateFor(id);
+        if (!state) return scoreKnown ? `${initialHome ?? '–'} - ${initialAway ?? '–'}` : null;
+        const home = state.score?.home;
+        const away = state.score?.away;
+        return state.is_live || state.is_finished || home !== null || away !== null ? `${home ?? '–'} - ${away ?? '–'}` : null;
+    },
+
+    matchStatus(id, fallback) {
+        const state = this.stateFor(id);
+        if (!state) return fallback;
+        if (state.is_live) return state.minute !== null ? `CANLI ${state.minute}′` : (state.is_half_time ? 'DEVRE' : 'CANLI');
+        if (state.is_finished) return state.status === 'finished' ? 'MS' : String(state.status_display ?? fallback).toLocaleUpperCase('tr-TR');
+        return String(state.status_display ?? fallback);
+    },
+
+    visibilityChanged() {
+        if (document.hidden) {
+            this.stop();
+        } else if (this.pollingIds.length > 0) {
+            this.refresh();
+            this.start();
+        }
+    },
+
+    start() {
+        if (this.timer || document.hidden || this.pollingIds.length === 0) return;
+        this.timer = window.setInterval(() => this.refresh(), 25000);
+    },
+
+    stop() {
+        if (this.timer) window.clearInterval(this.timer);
+        this.timer = null;
+    },
+
+    async refresh() {
+        const ids = this.pollingIds;
+        if (document.hidden || ids.length === 0) {
+            this.stop();
+            return;
+        }
+
+        const query = new URLSearchParams();
+        ids.forEach((id) => query.append('ids[]', String(id)));
+
+        try {
+            const response = await fetch(`${this.url}?${query}`, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+                cache: 'no-store',
+            });
+            if (!response.ok) return;
+            const payload = await response.json();
+            if (payload.matches && typeof payload.matches === 'object') {
+                this.states = { ...this.states, ...payload.matches };
+            }
+            if (this.pollingIds.length === 0) this.stop();
+        } catch (error) {
+            // Keep the last database-backed state during transient failures.
+        }
+    },
+});
+
 window.liveFixtureHero = (matchId, stateUrl, initial) => ({
     matchId,
     stateUrl,
