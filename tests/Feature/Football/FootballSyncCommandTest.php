@@ -31,10 +31,16 @@ class FootballSyncCommandTest extends TestCase
         $this->seed(FootballCompetitionSeeder::class);
         $this->seed(FootballCompetitionSeeder::class);
 
-        $this->assertDatabaseCount('football_competitions', 4);
+        $this->assertDatabaseCount('football_competitions', 5);
         $this->assertDatabaseHas('football_competitions', [
             'provider_league_id' => '482ofyysbdbeoxauk19yg7tdt',
             'sort_order' => 10,
+        ]);
+        $this->assertDatabaseHas('football_competitions', [
+            'provider_league_id' => FootballCompetition::NATIONS_LEAGUE_PROVIDER_ID,
+            'display_name' => 'Uluslar Ligi',
+            'slug' => 'uluslar-ligi',
+            'sort_order' => 15,
         ]);
     }
 

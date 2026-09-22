@@ -26,6 +26,7 @@ class TodayScoresTest extends TestCase
 
         $this->competitions = [
             'super' => $this->competition(FootballCompetition::SUPER_LEAGUE_PROVIDER_ID, 'Trendyol Süper Lig', 'super-lig', 10),
+            'nations' => $this->competition(FootballCompetition::NATIONS_LEAGUE_PROVIDER_ID, 'Uluslar Ligi', 'uluslar-ligi', 15),
             'champions' => $this->competition(FootballCompetition::CHAMPIONS_LEAGUE_PROVIDER_ID, 'Şampiyonlar Ligi', 'sampiyonlar-ligi', 20),
             'europa' => $this->competition(FootballCompetition::EUROPA_LEAGUE_PROVIDER_ID, 'Avrupa Ligi', 'avrupa-ligi', 30),
             'conference' => $this->competition(FootballCompetition::CONFERENCE_LEAGUE_PROVIDER_ID, 'Konferans Ligi', 'konferans-ligi', 40),
@@ -156,20 +157,29 @@ class TodayScoresTest extends TestCase
             ->assertJsonPath('matches.0.is_live', true);
     }
 
-    public function test_matches_page_has_four_provider_id_tabs_filters_and_empty_state(): void
+    public function test_matches_page_has_five_provider_id_tabs_filters_and_empty_state(): void
     {
         $superMatch = $this->match($this->competitions['super'], 'Lig Ev', 'Lig Dep');
+        $nationsMatch = $this->match($this->competitions['nations'], 'Türkiye', 'Fransa');
         $championsMatch = $this->match($this->competitions['champions'], 'ŞL Ev', 'ŞL Dep');
 
         $default = $this->get(route('matches.index'))
             ->assertOk()
             ->assertSee('matches-competition-tabs', false)
             ->assertSee('Trendyol Süper Lig')
+            ->assertSee('Uluslar Ligi')
             ->assertSee('Şampiyonlar Ligi')
             ->assertSee('Avrupa Ligi')
             ->assertSee('Konferans Ligi')
             ->assertSee(route('matches.show', $superMatch), false);
         $this->assertStringNotContainsString('ŞL Ev', strstr($default->getContent(), '<div class="feed-column matches-today-page'));
+
+        $nations = $this->get(route('matches.index', ['competition' => FootballCompetition::NATIONS_LEAGUE_PROVIDER_ID]))
+            ->assertOk()
+            ->assertSee('Türkiye')
+            ->assertSee('Fransa')
+            ->assertSee(route('matches.show', $nationsMatch), false);
+        $this->assertStringNotContainsString('Lig Ev', strstr($nations->getContent(), '<div class="feed-column matches-today-page'));
 
         $champions = $this->get(route('matches.index', ['competition' => FootballCompetition::CHAMPIONS_LEAGUE_PROVIDER_ID]))
             ->assertOk()

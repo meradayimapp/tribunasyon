@@ -10,6 +10,8 @@ class FootballCompetition extends Model
 {
     public const SUPER_LEAGUE_PROVIDER_ID = '482ofyysbdbeoxauk19yg7tdt';
 
+    public const NATIONS_LEAGUE_PROVIDER_ID = '595nsvo7ykvoe690b1e4u5n56';
+
     public const CHAMPIONS_LEAGUE_PROVIDER_ID = '4oogyu6o156iphvdvphwpck10';
 
     public const EUROPA_LEAGUE_PROVIDER_ID = '4c1nfi2j1m731hcay25fcgndq';
@@ -18,6 +20,7 @@ class FootballCompetition extends Model
 
     public const FEATURED_PROVIDER_LEAGUE_IDS = [
         self::SUPER_LEAGUE_PROVIDER_ID,
+        self::NATIONS_LEAGUE_PROVIDER_ID,
         self::CHAMPIONS_LEAGUE_PROVIDER_ID,
         self::EUROPA_LEAGUE_PROVIDER_ID,
         self::CONFERENCE_LEAGUE_PROVIDER_ID,

@@ -19,6 +19,14 @@ class FootballCompetitionSeeder extends Seeder
                 'sort_order' => 10,
             ],
             [
+                'provider_league_id' => FootballCompetition::NATIONS_LEAGUE_PROVIDER_ID,
+                'name' => 'UEFA Nations League',
+                'display_name' => 'Uluslar Ligi',
+                'slug' => 'uluslar-ligi',
+                'country' => null,
+                'sort_order' => 15,
+            ],
+            [
                 'provider_league_id' => FootballCompetition::CHAMPIONS_LEAGUE_PROVIDER_ID,
                 'name' => 'UEFA Champions League',
                 'display_name' => 'Şampiyonlar Ligi',
