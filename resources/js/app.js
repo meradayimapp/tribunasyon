@@ -750,19 +750,27 @@ window.competitionLiveState = (url, initialStates = {}) => ({
         return this.stateFor(id)?.is_live ?? fallback;
     },
 
-    matchScore(id, scoreKnown = false, initialHome = null, initialAway = null) {
+    matchPrimary(id, fallback) {
         const state = this.stateFor(id);
-        if (!state) return scoreKnown ? `${initialHome ?? '–'} - ${initialAway ?? '–'}` : null;
+        if (!state) return fallback;
         const home = state.score?.home;
         const away = state.score?.away;
-        return state.is_live || state.is_finished || home !== null || away !== null ? `${home ?? '–'} - ${away ?? '–'}` : null;
+        return state.is_live || state.is_finished || home !== null || away !== null ? `${home ?? '–'} - ${away ?? '–'}` : fallback;
+    },
+
+    matchMinute(id, fallback = null) {
+        const state = this.stateFor(id);
+        if (!state) return fallback;
+        if (!state.is_live) return null;
+        if (state.is_half_time) return 'DEVRE';
+        return state.minute !== null ? `${state.minute}′` : null;
     },
 
     matchStatus(id, fallback) {
         const state = this.stateFor(id);
         if (!state) return fallback;
-        if (state.is_live) return state.minute !== null ? `CANLI ${state.minute}′` : (state.is_half_time ? 'DEVRE' : 'CANLI');
-        if (state.is_finished) return state.status === 'finished' ? 'MS' : String(state.status_display ?? fallback).toLocaleUpperCase('tr-TR');
+        if (state.is_live) return state.is_half_time ? null : 'CANLI';
+        if (state.is_finished) return state.status === 'finished' ? 'Bitti' : String(state.status_display ?? fallback);
         return String(state.status_display ?? fallback);
     },
 

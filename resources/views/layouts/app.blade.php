@@ -151,7 +151,7 @@
     <nav class="mobile-nav" aria-label="Mobil navigasyon">
         <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><x-ui.icon name="home" /><span>Akış</span></a>
         <a class="{{ request()->routeIs('teams.*') ? 'active' : '' }}" href="{{ route('teams.index') }}"><x-ui.icon name="teams" /><span>Takımlar</span></a>
-        <a class="{{ request()->routeIs('matches.*') ? 'active' : '' }}" href="{{ route('matches.index') }}"><x-ui.icon name="football" /><span>Maçlar</span></a>
+        <a class="{{ request()->routeIs('matches.*', 'competitions.*') ? 'active' : '' }}" href="{{ route('matches.index') }}"><x-ui.icon name="football" /><span>Maçlar</span></a>
         <a class="{{ request()->routeIs('profile.*') ? 'active' : '' }}" href="{{ auth()->check() ? route('profile.show', auth()->user()) : route('login') }}"><x-ui.icon name="person" /><span>Profil</span></a>
     </nav>
 </div>

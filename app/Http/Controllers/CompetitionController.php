@@ -20,6 +20,8 @@ class CompetitionController extends Controller
 {
     private const TABS = ['genel-bakis', 'fikstur', 'puan-durumu', 'takimlar'];
 
+    private const FIXTURE_FILTERS = ['tumu', 'yaklasan', 'tamamlanan'];
+
     public function show(
         Request $request,
         string $competition,
@@ -32,13 +34,16 @@ class CompetitionController extends Controller
         $matches = $page->matches($competition);
         $displaySeason = $competition->current_season ?: $matches->pluck('season')->filter()->first();
         $teams = $page->teams($matches);
-        $groups = $page->groups($matches);
         $turkeyProviderTeamId = $page->turkeyProviderTeamId($competition, $teams);
-        $turkeyMatches = $page->turkeyMatches($matches, $teams, $competition);
         $now = CarbonImmutable::now(FootballMatch::DISPLAY_TIMEZONE);
         $today = $now->toDateString();
+        $overviewMatches = $page->overviewMatches($matches, $now);
+        $fixtureFilter = in_array($request->query('filter'), self::FIXTURE_FILTERS, true)
+            ? $request->query('filter')
+            : 'tumu';
+        $fixtureMatches = $page->filterFixtures($matches, $fixtureFilter);
 
-        $standings = in_array($tab, ['genel-bakis', 'puan-durumu'], true)
+        $standings = $tab === 'puan-durumu'
             && $competition->provider === LiveFootballApiService::PROVIDER
             ? $standingsService->forLeague($competition->provider_league_id, $competition->current_season)
             : null;
@@ -47,11 +52,9 @@ class CompetitionController extends Controller
         )->values();
         $localTeams = $this->standingsTeams($tables);
         $visibleMatches = match ($tab) {
-            'fikstur' => $matches,
-            default => $matches->filter(fn (FootballMatch $match): bool => $match->is_live || $match->kickoffInDisplayTimezone()->toDateString() === $today
-            )->merge($matches->filter->isCompleted()->sortByDesc('kickoff_at')->take(8))
-                ->merge($matches->reject->isFinished()->filter(fn (FootballMatch $match): bool => $match->kickoff_at->isFuture())->take(8))
-                ->unique('id')->values(),
+            'genel-bakis' => $overviewMatches,
+            'fikstur' => $fixtureMatches,
+            default => collect(),
         };
         $pollingMatches = $visibleMatches->filter->shouldPollLiveState()->values();
 
@@ -60,13 +63,15 @@ class CompetitionController extends Controller
             'displaySeason' => $displaySeason,
             'tab' => $tab,
             'matches' => $matches,
-            'groups' => $groups,
             'teams' => $teams,
-            'liveMatches' => $matches->filter->is_live->values(),
-            'todayMatches' => $matches->filter(fn (FootballMatch $match): bool => $match->kickoffInDisplayTimezone()->toDateString() === $today)->values(),
-            'recentMatches' => $matches->filter->isCompleted()->sortByDesc('kickoff_at')->take(8)->values(),
-            'upcomingMatches' => $matches->reject->isFinished()->filter(fn (FootballMatch $match): bool => $match->kickoff_at->isFuture())->take(8)->values(),
-            'turkeyMatches' => $turkeyMatches,
+            'overviewMatches' => $overviewMatches,
+            'overviewDateGroups' => $page->dateGroups($overviewMatches),
+            'overviewHasTodayMatches' => $overviewMatches->contains(
+                fn (FootballMatch $match): bool => $match->kickoffInDisplayTimezone()->toDateString() === $today
+            ),
+            'fixtureFilter' => $fixtureFilter,
+            'fixtureMatches' => $fixtureMatches,
+            'fixtureDateGroups' => $page->dateGroups($fixtureMatches),
             'turkeyProviderTeamId' => $turkeyProviderTeamId,
             'tables' => $tables,
             'standingsSeason' => $standings['season'] ?? null,

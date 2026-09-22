@@ -43,16 +43,46 @@ class CompetitionPageService
             ->values();
     }
 
-    public function groups(Collection $matches, ?CarbonImmutable $now = null): array
+    public function overviewMatches(Collection $matches, ?CarbonImmutable $now = null, int $upcomingLimit = 12): Collection
     {
         $now ??= CarbonImmutable::now(FootballMatch::DISPLAY_TIMEZONE);
         $today = $now->toDateString();
 
-        return [
-            'past' => $matches->filter(fn (FootballMatch $match): bool => $match->kickoffInDisplayTimezone()->toDateString() < $today)->values(),
-            'today' => $matches->filter(fn (FootballMatch $match): bool => $match->kickoffInDisplayTimezone()->toDateString() === $today)->values(),
-            'future' => $matches->filter(fn (FootballMatch $match): bool => $match->kickoffInDisplayTimezone()->toDateString() > $today)->values(),
-        ];
+        $live = $matches->filter->is_live;
+        $todayMatches = $matches->filter(
+            fn (FootballMatch $match): bool => $match->kickoffInDisplayTimezone()->toDateString() === $today
+        );
+        $upcoming = $matches
+            ->reject->isFinished()
+            ->filter(fn (FootballMatch $match): bool => $match->kickoff_at->isFuture())
+            ->reject(fn (FootballMatch $match): bool => $match->kickoffInDisplayTimezone()->toDateString() === $today)
+            ->take($upcomingLimit);
+
+        return $live
+            ->merge($todayMatches)
+            ->merge($upcoming)
+            ->unique('id')
+            ->sort(fn (FootballMatch $left, FootballMatch $right): int => ($left->kickoff_at <=> $right->kickoff_at) ?: ($left->id <=> $right->id)
+            )
+            ->values();
+    }
+
+    public function filterFixtures(Collection $matches, string $filter): Collection
+    {
+        return match ($filter) {
+            'yaklasan' => $matches
+                ->reject->isFinished()
+                ->filter(fn (FootballMatch $match): bool => $match->is_live || $match->kickoff_at->isFuture())
+                ->values(),
+            'tamamlanan' => $matches->filter->isCompleted()->values(),
+            default => $matches->values(),
+        };
+    }
+
+    public function dateGroups(Collection $matches): Collection
+    {
+        return $matches
+            ->groupBy(fn (FootballMatch $match): string => $match->kickoffInDisplayTimezone()->toDateString());
     }
 
     public function turkeyProviderTeamId(FootballCompetition $competition, Collection $teams): ?string
@@ -73,19 +103,5 @@ class CompetitionPageService
         return $providerId !== '' && $teams->contains(
             fn (FootballTeam $team): bool => $team->provider_team_id === $providerId
         ) ? $providerId : null;
-    }
-
-    public function turkeyMatches(Collection $matches, Collection $teams, FootballCompetition $competition): Collection
-    {
-        $providerId = $this->turkeyProviderTeamId($competition, $teams);
-
-        if ($providerId === null) {
-            return collect();
-        }
-
-        $teamId = $teams->firstWhere('provider_team_id', $providerId)?->id;
-
-        return $matches->filter(fn (FootballMatch $match): bool => $match->home_football_team_id === $teamId || $match->away_football_team_id === $teamId
-        )->values();
     }
 }
