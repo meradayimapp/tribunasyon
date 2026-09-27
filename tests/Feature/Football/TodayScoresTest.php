@@ -39,7 +39,7 @@ class TodayScoresTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_global_ribbon_remains_on_other_pages_in_state_order_but_is_hidden_on_matches_page(): void
+    public function test_global_score_ribbon_is_removed_while_today_state_keeps_state_order(): void
     {
         $finished = $this->match($this->competitions['super'], 'Biten Ev', 'Biten Dep', [
             'kickoff_at' => '2026-09-09 09:00:00', 'status' => 'finished', 'home_score' => 2, 'away_score' => 1,
@@ -52,21 +52,17 @@ class TodayScoresTest extends TestCase
             'is_live' => true, 'home_score' => 0, 'away_score' => 0, 'live_minute' => 27,
         ]);
         $unsupported = $this->competition('unsupported-league', 'Desteklenmeyen Lig', 'diger-lig', 60);
-        $this->match($unsupported, 'Gizli Ev', 'Gizli Dep');
+        $unsupportedMatch = $this->match($unsupported, 'Gizli Ev', 'Gizli Dep');
 
         Http::fake();
-        $response = $this->get(route('home'))->assertOk()
-            ->assertSee('today-scores-ribbon', false)
-            ->assertSee('data-polling="on"', false)
-            ->assertSee('data-match-ids="'.$live->id.','.$upcoming->id.','.$finished->id.'"', false)
-            ->assertDontSee('Desteklenmeyen Lig')
-            ->assertDontSee('Gizli Ev');
-
-        $html = $response->getContent();
-        $this->assertLessThan(strpos($html, 'Gelecek Ev'), strpos($html, 'Canlı Ev'));
-        $this->assertLessThan(strpos($html, 'Biten Ev'), strpos($html, 'Gelecek Ev'));
-
+        $this->get(route('home'))->assertOk()->assertDontSee('today-scores-ribbon', false);
         $this->get(route('matches.index'))->assertOk()->assertDontSee('today-scores-ribbon', false);
+        $this->getJson(route('matches.today.state'))
+            ->assertOk()
+            ->assertJsonPath('matches.0.id', $live->id)
+            ->assertJsonPath('matches.1.id', $upcoming->id)
+            ->assertJsonPath('matches.2.id', $finished->id)
+            ->assertJsonMissing(['id' => $unsupportedMatch->id]);
         Http::assertNothingSent();
     }
 
@@ -94,11 +90,11 @@ class TodayScoresTest extends TestCase
             ->assertJsonMissing(['id' => $after->id]);
     }
 
-    public function test_ribbon_polling_wakes_for_scheduled_matches_and_is_disabled_in_match_center(): void
+    public function test_today_state_exposes_polling_state_without_rendering_a_global_ribbon(): void
     {
         $scheduled = $this->match($this->competitions['super'], 'Planlı Ev', 'Planlı Dep');
 
-        $this->get(route('home'))->assertOk()->assertSee('data-polling="on"', false);
+        $this->get(route('home'))->assertOk()->assertDontSee('today-scores-ribbon', false);
         $this->getJson(route('matches.today.state'))
             ->assertOk()
             ->assertJsonPath('matches.0.polling_active', false)
@@ -109,8 +105,8 @@ class TodayScoresTest extends TestCase
             'home_score' => 1, 'away_score' => 1,
         ]);
 
-        $this->get(route('home'))->assertOk()->assertSee('data-polling="on"', false);
-        $this->get(route('matches.show', $scheduled))->assertOk()->assertSee('data-polling="off"', false);
+        $this->get(route('home'))->assertOk()->assertDontSee('today-scores-ribbon', false);
+        $this->get(route('matches.show', $scheduled))->assertOk()->assertDontSee('today-scores-ribbon', false);
         $this->getJson(route('matches.today.state'))
             ->assertOk()
             ->assertJsonPath('matches.0.status_label', 'DEVRE')

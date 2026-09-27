@@ -594,134 +594,6 @@ window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
     },
 });
 
-window.todayScoresRibbon = (url, initialMatches, pollingEnabled = false) => ({
-    url,
-    matches: Array.isArray(initialMatches) ? initialMatches : [],
-    pollingEnabled: Boolean(pollingEnabled),
-    timer: null,
-    wakeTimer: null,
-
-    init() {
-        if (this.pollingEnabled && this.hasPollableMatches && !document.hidden) {
-            this.start();
-        } else {
-            this.armWakeup();
-        }
-    },
-
-    destroy() {
-        this.stop();
-        if (this.wakeTimer) window.clearTimeout(this.wakeTimer);
-    },
-
-    get hasLiveMatches() {
-        return this.matches.some((match) => Boolean(match.is_live));
-    },
-
-    get hasPollableMatches() {
-        return this.matches.some((match) => Boolean(match.polling_active));
-    },
-
-    shortName(value) {
-        const name = String(value ?? '').trim();
-
-        if (name.length <= 5) return name.toLocaleUpperCase('tr-TR');
-
-        const words = name.split(/\s+/).filter(Boolean);
-
-        if (words.length > 1) {
-            return words.map((word) => word[0]).join('').slice(0, 4).toLocaleUpperCase('tr-TR');
-        }
-
-        return name.slice(0, 4).toLocaleUpperCase('tr-TR');
-    },
-
-    centerText(match) {
-        if (match.is_live || match.is_finished || match.home_score !== null || match.away_score !== null) {
-            return `${match.home_score ?? '–'} – ${match.away_score ?? '–'}`;
-        }
-
-        return match.kickoff_time;
-    },
-
-    cardStatus(match) {
-        if (!match.is_live || match.status_label === 'DEVRE') return match.status_label;
-
-        return match.status_label === 'CANLI' ? 'CANLI' : `CANLI ${match.status_label}`;
-    },
-
-    visibilityChanged() {
-        if (document.hidden) {
-            this.stop();
-        } else if (this.pollingEnabled && this.hasPollableMatches) {
-            this.refresh();
-            this.start();
-        } else {
-            this.armWakeup();
-        }
-    },
-
-    start() {
-        if (this.timer || !this.pollingEnabled || !this.hasPollableMatches || document.hidden) return;
-        this.timer = window.setInterval(() => this.refresh(), 25000);
-    },
-
-    stop() {
-        if (this.timer) window.clearInterval(this.timer);
-        this.timer = null;
-    },
-
-    armWakeup() {
-        if (this.wakeTimer || !this.pollingEnabled) return;
-        const starts = this.matches
-            .filter((match) => !match.is_terminal && !match.polling_active && match.polling_starts_at)
-            .map((match) => new Date(match.polling_starts_at).getTime())
-            .filter((value) => Number.isFinite(value) && value > Date.now());
-        if (starts.length === 0) return;
-        const delay = Math.min(...starts) - Date.now();
-        this.wakeTimer = window.setTimeout(() => {
-            this.wakeTimer = null;
-            if (Math.min(...starts) > Date.now()) {
-                this.armWakeup();
-                return;
-            }
-            this.matches = this.matches.map((match) => ({
-                ...match,
-                polling_active: match.polling_active || (!match.is_terminal && new Date(match.polling_starts_at).getTime() <= Date.now()),
-            }));
-            if (!document.hidden) {
-                this.refresh();
-                this.start();
-            }
-        }, Math.min(delay, 2147483647));
-    },
-
-    async refresh() {
-        if (document.hidden || !this.pollingEnabled || !this.hasPollableMatches) return;
-
-        try {
-            const response = await fetch(this.url, {
-                headers: { Accept: 'application/json' },
-                credentials: 'same-origin',
-                cache: 'no-store',
-            });
-
-            if (!response.ok) return;
-
-            const payload = await response.json();
-            this.matches = Array.isArray(payload.matches) ? payload.matches : this.matches;
-            window.dispatchEvent(new CustomEvent('today-scores-updated', { detail: { matches: this.matches } }));
-
-            if (!this.hasPollableMatches) {
-                this.stop();
-                this.armWakeup();
-            }
-        } catch (error) {
-            // Keep the latest database-backed state visible during transient failures.
-        }
-    },
-});
-
 window.competitionLiveState = (url, initialStates = {}) => ({
     url,
     states: initialStates && typeof initialStates === 'object' ? initialStates : {},
@@ -847,49 +719,22 @@ window.liveFixtureHero = (matchId, stateUrl, initial) => ({
     stateUrl,
     timer: null,
     reloading: false,
-    ribbonCoverageLost: false,
     homeScore: initial.home_score ?? null,
     awayScore: initial.away_score ?? null,
     heroStatus: initial.status_label ?? 'Canlı',
 
     init() {
-        if (!this.coveredByRibbon() && !document.hidden) this.start();
+        if (!document.hidden) this.start();
     },
 
     destroy() {
         this.stop();
     },
 
-    coveredByRibbon() {
-        if (this.ribbonCoverageLost) return false;
-        const ribbon = document.querySelector('.today-scores-ribbon[data-polling="on"]');
-
-        return Boolean(ribbon?.dataset.matchIds?.split(',').includes(String(this.matchId)));
-    },
-
-    onScoresUpdated(matches) {
-        const match = Array.isArray(matches) ? matches.find((item) => item.id === this.matchId) : null;
-
-        if (!match) {
-            this.ribbonCoverageLost = true;
-            this.start();
-            return;
-        }
-
-        if (!match.is_live) {
-            this.reload();
-            return;
-        }
-
-        this.homeScore = match.home_score;
-        this.awayScore = match.away_score;
-        this.heroStatus = match.status_label === 'DEVRE' ? 'Devre Arası' : match.status_label;
-    },
-
     visibilityChanged() {
         if (document.hidden) {
             this.stop();
-        } else if (!this.coveredByRibbon()) {
+        } else {
             this.refresh();
             this.start();
         }

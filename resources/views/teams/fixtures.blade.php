@@ -27,7 +27,6 @@
                     @if($nextMatch->is_live)
                         <div
                             x-data="liveFixtureHero({{ Js::from($nextMatch->id) }}, {{ Js::from(route('matches.state', $nextMatch)) }}, {{ Js::from(['home_score' => $nextMatch->home_score, 'away_score' => $nextMatch->away_score, 'status_label' => $nextMatch->isHalfTime() ? 'Devre Arası' : ($nextMatch->displayMinute() !== null ? $nextMatch->displayMinute().'′' : 'Canlı')]) }})"
-                            @today-scores-updated.window="onScoresUpdated($event.detail.matches)"
                             @visibilitychange.document="visibilityChanged()"
                         >
                             <x-football-match-card :match="$nextMatch" variant="featured" />
