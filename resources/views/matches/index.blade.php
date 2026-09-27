@@ -1,69 +1,75 @@
 @extends('layouts.app')
 @section('title', 'Maçlar')
 @section('mobile-title', 'Maçlar')
-@section('content')
-<div class="feed-column matches-today-page mx-auto">
-    <div class="page-head">
-        <div class="eyebrow">Maç merkezi</div>
-        <h1 class="page-title mb-1">Bugünün maçları</h1>
-        <p class="muted mb-3">{{ $date->locale('tr')->translatedFormat('d F Y, l') }}</p>
-    </div>
 
-    <nav class="matches-competition-tabs" aria-label="Organizasyonlar">
-        @foreach($competitions as $competition)
+@php
+    $baseQuery = fn (array $changes = []) => array_filter(array_merge([
+        'date' => $date->toDateString(),
+        'status' => $status !== 'all' ? $status : null,
+        'competition' => $competitionSlug !== 'all' ? $competitionSlug : null,
+    ], $changes), fn ($value) => $value !== null);
+    $statusLabels = [
+        'all' => 'Tümü',
+        'live' => 'Canlı',
+        'upcoming' => 'Yaklaşan',
+        'finished' => 'Tamamlanan',
+    ];
+@endphp
+
+@section('content')
+<div
+    class="feed-column matches-center-page mx-auto"
+    x-data="competitionLiveState(@js(route('matches.index.state')), @js($initialStates))"
+    @visibilitychange.document="visibilityChanged()"
+>
+    <header class="matches-center-header">
+        <h1>Maçlar</h1>
+        <p>{{ $date->locale('tr')->translatedFormat('d F l') }}</p>
+    </header>
+
+    <nav class="matches-status-filters" aria-label="Maç durumu filtreleri">
+        @foreach($statusLabels as $key => $label)
             <a
-                href="{{ route('matches.index', ['competition' => $competition->provider_league_id]) }}"
-                @class(['active' => $selectedCompetition?->is($competition)])
-                @if($selectedCompetition?->is($competition)) aria-current="page" @endif
-            >{{ $competition->display_name ?: $competition->name }}</a>
+                href="{{ route('matches.index', $baseQuery(['status' => $key === 'all' ? null : $key])) }}"
+                @class(['active' => $status === $key, 'is-live' => $key === 'live'])
+                @if($status === $key) aria-current="page" @endif
+            >@if($key === 'live')<i aria-hidden="true"></i>@endif{{ $label }}</a>
         @endforeach
     </nav>
 
-    @if($selectedCompetition?->provider_league_id === \App\Models\FootballCompetition::NATIONS_LEAGUE_PROVIDER_ID)
-        <a class="competition-center-link" href="{{ route('competitions.show', ['competition' => 'uluslar-ligi']) }}">
-            <span><x-ui.icon name="trophy" /><span><strong>Uluslar Ligi Merkezi</strong><small>Tüm fikstür ve puan durumu</small></span></span>
-            <x-ui.icon name="chevron-right" />
-        </a>
-    @endif
+    <x-football.date-selector :date="$date" :today="$today" :status="$status" :competition-slug="$competitionSlug" />
 
-    @if($selectedCompetition === null)
-        <div class="empty-state mx-3 mx-md-0">
-            <x-ui.icon name="calendar" />
-            <strong>Takip edilen organizasyon bulunamadı.</strong>
-        </div>
-    @elseif($liveMatches->isEmpty() && $upcomingMatches->isEmpty() && $finishedMatches->isEmpty())
-        <div class="empty-state mx-3 mx-md-0">
-            <x-ui.icon name="calendar" />
-            <strong>Bugün bu organizasyonda maç bulunmuyor.</strong>
-            <p>Başka bir organizasyon seçerek günün programına bakabilirsin.</p>
-        </div>
-    @else
-        @if($liveMatches->isNotEmpty())
-            <section class="today-match-group" aria-labelledby="today-live-title">
-                <h2 id="today-live-title" class="today-match-group-title is-live"><i aria-hidden="true"></i> Canlı</h2>
-                @foreach($liveMatches as $match)
-                    <x-football-match-card :match="$match" />
-                @endforeach
-            </section>
-        @endif
+    <form class="matches-league-filter" method="GET" action="{{ route('matches.index') }}">
+        <input type="hidden" name="date" value="{{ $date->toDateString() }}">
+        @if($status !== 'all')<input type="hidden" name="status" value="{{ $status }}">@endif
+        <label for="matches-competition-filter">
+            <x-ui.icon name="filter" />
+            <span>Ligler / Filtre</span>
+        </label>
+        <select id="matches-competition-filter" name="competition" onchange="this.form.submit()">
+            <option value="all" @selected($competitionSlug === 'all')>Tüm turnuvalar</option>
+            @foreach($competitions as $competition)
+                <option value="{{ $competition->slug }}" @selected($competitionSlug === $competition->slug)>
+                    {{ $competition->display_name ?: $competition->name }}
+                </option>
+            @endforeach
+        </select>
+        <button type="submit">Uygula</button>
+    </form>
 
-        @if($upcomingMatches->isNotEmpty())
-            <section class="today-match-group" aria-labelledby="today-upcoming-title">
-                <h2 id="today-upcoming-title" class="today-match-group-title">Bugün</h2>
-                @foreach($upcomingMatches as $match)
-                    <x-football-match-card :match="$match" />
-                @endforeach
+    <div class="matches-groups">
+        @forelse($matchGroups as $groupMatches)
+            <x-football.competition-match-group :matches="$groupMatches" />
+        @empty
+            <section class="matches-empty-state" aria-live="polite">
+                <x-ui.icon name="calendar" />
+                <p><strong>{{ $date->locale('tr')->translatedFormat('d F') }}</strong>'de seçili filtrelerde maç bulunmuyor.</p>
+                <div>
+                    <a href="{{ route('matches.index', $baseQuery(['date' => $date->subDay()->toDateString()])) }}"><x-ui.icon name="chevron-left" /> Önceki gün</a>
+                    <a href="{{ route('matches.index', $baseQuery(['date' => $date->addDay()->toDateString()])) }}">Sonraki gün <x-ui.icon name="chevron-right" /></a>
+                </div>
             </section>
-        @endif
-
-        @if($finishedMatches->isNotEmpty())
-            <section class="today-match-group" aria-labelledby="today-finished-title">
-                <h2 id="today-finished-title" class="today-match-group-title">Bitti</h2>
-                @foreach($finishedMatches as $match)
-                    <x-football-match-card :match="$match" />
-                @endforeach
-            </section>
-        @endif
-    @endif
+        @endforelse
+    </div>
 </div>
 @endsection

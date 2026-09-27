@@ -9,13 +9,33 @@ use Throwable;
 
 class SyncFootballFixtures extends Command
 {
-    protected $signature = 'football:sync-fixtures';
+    protected $signature = 'football:sync-fixtures
+        {--competition=* : Exact competition slug or provider league ID}';
 
     protected $description = 'Aktif futbol organizasyonlarının fikstürlerini senkronize et';
 
     public function handle(FootballDataSynchronizer $synchronizer): int
     {
-        $competitions = FootballCompetition::query()->active()->ordered()->get();
+        $requestedCompetitions = collect($this->option('competition'))
+            ->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')
+            ->map(fn (string $value): string => trim($value))
+            ->unique()
+            ->values();
+        $competitions = FootballCompetition::query()
+            ->active()
+            ->when($requestedCompetitions->isNotEmpty(), fn ($query) => $query->where(
+                fn ($filter) => $filter
+                    ->whereIn('slug', $requestedCompetitions)
+                    ->orWhereIn('provider_league_id', $requestedCompetitions)
+            ))
+            ->ordered()
+            ->get();
+
+        if ($requestedCompetitions->isNotEmpty() && $competitions->count() !== $requestedCompetitions->count()) {
+            $this->error('İstenen organizasyonlardan en az biri aktif ve kayıtlı değil. Tam slug veya provider league ID kullanın.');
+
+            return self::INVALID;
+        }
 
         if ($competitions->isEmpty()) {
             $this->warn('Senkronize edilecek aktif futbol organizasyonu yok.');

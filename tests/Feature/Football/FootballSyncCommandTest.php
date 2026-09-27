@@ -8,6 +8,7 @@ use App\Models\FootballMatch;
 use App\Models\Team;
 use Database\Seeders\FootballCompetitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -31,7 +32,7 @@ class FootballSyncCommandTest extends TestCase
         $this->seed(FootballCompetitionSeeder::class);
         $this->seed(FootballCompetitionSeeder::class);
 
-        $this->assertDatabaseCount('football_competitions', 5);
+        $this->assertDatabaseCount('football_competitions', 11);
         $this->assertDatabaseHas('football_competitions', [
             'provider_league_id' => '482ofyysbdbeoxauk19yg7tdt',
             'sort_order' => 10,
@@ -42,6 +43,29 @@ class FootballSyncCommandTest extends TestCase
             'slug' => 'uluslar-ligi',
             'sort_order' => 15,
         ]);
+
+        $expected = [
+            FootballCompetition::PREMIER_LEAGUE_PROVIDER_ID => ['Premier Lig', 'Premier League', 'premier-league', 'İngiltere', 50],
+            FootballCompetition::LA_LIGA_PROVIDER_ID => ['LaLiga', 'La Liga', 'la-liga', 'İspanya', 60],
+            FootballCompetition::SERIE_A_PROVIDER_ID => ['Serie A', 'Serie A', 'serie-a', 'İtalya', 70],
+            FootballCompetition::BUNDESLIGA_PROVIDER_ID => ['Bundesliga', 'Bundesliga', 'bundesliga', 'Almanya', 80],
+            FootballCompetition::LIGUE_1_PROVIDER_ID => ['Ligue 1', 'Ligue 1', 'ligue-1', 'Fransa', 90],
+            FootballCompetition::PRIMEIRA_LIGA_PROVIDER_ID => ['Primeira Liga', 'Primeira Liga', 'primeira-liga', 'Portekiz', 100],
+        ];
+
+        foreach ($expected as $providerId => [$name, $displayName, $slug, $country, $sortOrder]) {
+            $this->assertDatabaseHas('football_competitions', [
+                'provider' => 'live-football-api',
+                'provider_league_id' => $providerId,
+                'name' => $name,
+                'display_name' => $displayName,
+                'slug' => $slug,
+                'country' => $country,
+                'current_season' => '2026/2027',
+                'is_active' => true,
+                'sort_order' => $sortOrder,
+            ]);
+        }
     }
 
     public function test_fixture_sync_is_idempotent_normalizes_scores_and_links_known_community_teams(): void
@@ -82,8 +106,68 @@ class FootballSyncCommandTest extends TestCase
             'away_halftime_score' => 0,
             'tv_broadcast' => 1,
         ]);
+        $this->assertDatabaseHas('football_competitions', [
+            'id' => $competition->id,
+            'country' => 'Türkiye',
+            'provider_logo_url' => 'https://cdn.test/super-lig.png',
+            'current_season' => '2026/2027',
+        ]);
         $this->assertSame('2026-09-08 17:00:00', DB::table('football_matches')->value('kickoff_at'));
         $this->assertSame('UTC', FootballMatch::query()->firstOrFail()->kickoff_at->timezoneName);
+    }
+
+    public function test_fixture_sync_targets_every_seeded_competition_once_by_provider_id(): void
+    {
+        $this->seed(FootballCompetitionSeeder::class);
+
+        Http::fake(fn (Request $request) => Http::response([
+            'success' => true,
+            'data' => [
+                'league_id' => $request['league_id'],
+                'league_name' => 'Provider League',
+                'season' => '2026/2027',
+                'timezone' => 'UTC',
+                'weeks' => [],
+            ],
+        ]));
+
+        $this->artisan('football:sync-fixtures')->assertSuccessful();
+
+        $expectedIds = FootballCompetition::query()->pluck('provider_league_id')->sort()->values()->all();
+        $requestedIds = collect(Http::recorded())
+            ->map(fn (array $record): string => (string) $record[0]['league_id'])
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertCount(11, $requestedIds);
+        $this->assertSame($expectedIds, $requestedIds);
+    }
+
+    public function test_fixture_sync_can_target_one_competition_by_exact_slug_without_extra_api_calls(): void
+    {
+        $this->seed(FootballCompetitionSeeder::class);
+
+        Http::fake(fn (Request $request) => Http::response([
+            'success' => true,
+            'data' => [
+                'league_id' => $request['league_id'],
+                'league_name' => 'Bundesliga',
+                'season' => '2026/2027',
+                'timezone' => 'UTC',
+                'weeks' => [],
+            ],
+        ]));
+
+        $this->artisan('football:sync-fixtures', ['--competition' => ['bundesliga']])->assertSuccessful();
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn (Request $request): bool => $request['league_id'] === FootballCompetition::BUNDESLIGA_PROVIDER_ID);
+
+        $this->artisan('football:sync-fixtures', ['--competition' => ['bundes']])
+            ->expectsOutput('İstenen organizasyonlardan en az biri aktif ve kayıtlı değil. Tam slug veya provider league ID kullanın.')
+            ->assertExitCode(2);
+        Http::assertSentCount(1);
     }
 
     public function test_daily_sync_updates_only_active_tracked_competitions(): void
@@ -151,6 +235,8 @@ class FootballSyncCommandTest extends TestCase
                 'league_name' => 'Trendyol Süper Lig',
                 'season' => '2026/2027',
                 'timezone' => 'UTC',
+                'country' => 'Türkiye',
+                'logo' => 'https://cdn.test/super-lig.png',
                 'weeks' => [[
                     'week' => '4',
                     'matches' => [$this->matchPayload()],

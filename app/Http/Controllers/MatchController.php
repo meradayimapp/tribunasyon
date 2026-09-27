@@ -7,36 +7,61 @@ use App\Models\FootballMatch;
 use App\Models\FootballTeam;
 use App\Services\Football\LeagueStandingsService;
 use App\Services\Football\LiveFootballApiService;
+use App\Services\Football\MatchesPageService;
 use App\Services\Football\MatchLineupPresenter;
 use App\Services\Football\MatchSupplementService;
 use App\Services\SeoService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class MatchController extends Controller
 {
-    public function index(Request $request, FootballDataService $service): View
-    {
-        $date = Carbon::today(FootballMatch::DISPLAY_TIMEZONE);
-        $competitions = $service->featuredCompetitions();
-        $requestedCompetitionId = (string) $request->query('competition', '');
-        $selectedCompetition = $competitions->firstWhere('provider_league_id', $requestedCompetitionId)
-            ?? $competitions->first();
-        $matches = $selectedCompetition === null
-            ? collect()
-            : $service->matchesForDate($date)
-                ->filter(fn (FootballMatch $match): bool => $match->competition->provider_league_id === $selectedCompetition->provider_league_id)
-                ->values();
+    public function index(
+        Request $request,
+        MatchesPageService $page,
+        SeoService $seoService,
+    ): View|RedirectResponse {
+        $today = CarbonImmutable::today(FootballMatch::DISPLAY_TIMEZONE);
+        $status = in_array($request->query('status'), MatchesPageService::STATUSES, true)
+            ? (string) $request->query('status')
+            : 'all';
+        $competitionSlug = trim((string) $request->query('competition', 'all')) ?: 'all';
+        $date = $this->requestedDate($request->query('date'));
+
+        if ($date === null) {
+            return redirect()->route('matches.index', array_filter([
+                'date' => $today->toDateString(),
+                'status' => $status !== 'all' ? $status : null,
+                'competition' => $competitionSlug !== 'all' ? $competitionSlug : null,
+            ]));
+        }
+
+        $competitions = $page->competitions();
+        $selectedCompetition = $competitionSlug === 'all'
+            ? null
+            : $competitions->firstWhere('slug', $competitionSlug);
+        $competitionSlug = $selectedCompetition?->slug ?? 'all';
+        $matches = $page->matches($date, $status, $selectedCompetition);
+        $pollingMatches = $matches->filter->is_live->values();
+        $initialStates = $pollingMatches->mapWithKeys(fn (FootballMatch $match): array => [
+            $match->id => $this->listingStatePayload($match),
+        ]);
 
         return view('matches.index', [
             'date' => $date,
+            'today' => $today,
+            'status' => $status,
             'competitions' => $competitions,
             'selectedCompetition' => $selectedCompetition,
-            'liveMatches' => $matches->filter->is_live->values(),
-            'upcomingMatches' => $matches->reject->is_live->reject->isCompleted()->values(),
-            'finishedMatches' => $matches->filter->isCompleted()->values(),
+            'competitionSlug' => $competitionSlug,
+            'matches' => $matches,
+            'matchGroups' => $page->groups($matches),
+            'initialStates' => $initialStates,
+            'seo' => $seoService->defaults($request, 'Maçlar'),
         ]);
     }
 
@@ -46,6 +71,29 @@ class MatchController extends Controller
 
         return response()->json(['matches' => $service->scoreRibbonPayload($matches)])
             ->header('Cache-Control', 'no-store, private');
+    }
+
+    public function indexState(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'max:100'],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $matches = FootballMatch::query()
+            ->indexable()
+            ->whereIn('football_matches.id', array_unique($validated['ids']))
+            ->whereHas('competition', fn ($query) => $query
+                ->featured()
+                ->where('provider', LiveFootballApiService::PROVIDER))
+            ->get([
+                'id', 'kickoff_at', 'status', 'state', 'status_display', 'is_live',
+                'home_score', 'away_score', 'live_minute', 'last_synced_at',
+            ]);
+
+        return response()->json(['matches' => $matches->mapWithKeys(fn (FootballMatch $match): array => [
+            $match->id => $this->listingStatePayload($match),
+        ])])->header('Cache-Control', 'no-store, private');
     }
 
     public function show(
@@ -115,5 +163,39 @@ class MatchController extends Controller
 
         return response()->json($payload)
             ->header('Cache-Control', 'no-store, private');
+    }
+
+    private function requestedDate(mixed $value): ?CarbonImmutable
+    {
+        if ($value === null || $value === '') {
+            return CarbonImmutable::today(FootballMatch::DISPLAY_TIMEZONE);
+        }
+
+        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        try {
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $value, FootballMatch::DISPLAY_TIMEZONE);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $date !== false && $date->format('Y-m-d') === $value ? $date : null;
+    }
+
+    /** @return array<string, mixed> */
+    private function listingStatePayload(FootballMatch $match): array
+    {
+        return [
+            'status' => $match->status,
+            'is_live' => $match->is_live,
+            'is_half_time' => $match->isHalfTime(),
+            'is_finished' => $match->isFinished(),
+            'score' => ['home' => $match->home_score, 'away' => $match->away_score],
+            'minute' => $match->displayMinute(),
+            'status_display' => $match->stateStatusLabel(),
+            'polling_active' => $match->is_live && ! $match->isFinished(),
+        ];
     }
 }

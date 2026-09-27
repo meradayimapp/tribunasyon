@@ -774,6 +774,27 @@ window.competitionLiveState = (url, initialStates = {}) => ({
         return String(state.status_display ?? fallback);
     },
 
+    matchListStatus(id, fallback) {
+        const state = this.stateFor(id);
+        if (!state) return fallback;
+        if (state.is_live) {
+            if (state.is_half_time) return 'DEVRE';
+            return `${state.minute !== null ? `${state.minute}' ` : ''}CANLI`;
+        }
+
+        const labels = {
+            finished: 'MS',
+            postponed: 'ERT.',
+            cancelled: 'İPT.',
+            canceled: 'İPT.',
+            abandoned: 'YARIDA',
+            scheduled: 'Başlamadı',
+            not_started: 'Başlamadı',
+        };
+
+        return labels[state.status] ?? String(state.status_display ?? fallback);
+    },
+
     visibilityChanged() {
         if (document.hidden) {
             this.stop();

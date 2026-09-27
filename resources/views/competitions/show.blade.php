@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', ($competition->display_name ?: $competition->name).' '.($displaySeason ?: ''))
 @section('mobile-title', $competition->display_name ?: $competition->name)
-@section('mobile-back', route('matches.index', ['competition' => $competition->provider_league_id]))
+@section('mobile-back', route('matches.index', ['competition' => $competition->slug]))
 
 @php
     $competitionName = $competition->provider_league_id === \App\Models\FootballCompetition::NATIONS_LEAGUE_PROVIDER_ID ? 'UEFA Uluslar Ligi' : ($competition->display_name ?: $competition->name);

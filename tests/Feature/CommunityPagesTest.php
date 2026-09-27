@@ -27,8 +27,8 @@ class CommunityPagesTest extends TestCase
     {
         $this->get('/maclar')
             ->assertOk()
-            ->assertSee('Bugünün maçları')
-            ->assertSee('Takip edilen organizasyon bulunamadı.')
+            ->assertSee('matches-status-filters', false)
+            ->assertSee('matches-empty-state', false)
             ->assertDontSee('mock');
     }
 

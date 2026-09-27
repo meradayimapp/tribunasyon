@@ -34,6 +34,8 @@ class FootballDataSynchronizer
                 'name' => $this->nullableString($data['league_name'] ?? null),
                 'current_season' => $this->nullableString($data['season'] ?? null),
                 'timezone' => $this->nullableString($data['timezone'] ?? null),
+                'country' => $this->nullableString($data['country'] ?? null),
+                'provider_logo_url' => $this->safeUrl($data['logo'] ?? ($data['league_logo'] ?? null)),
             ], fn (mixed $value): bool => $value !== null));
 
             $count = 0;
@@ -249,6 +251,17 @@ class FootballDataSynchronizer
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function safeUrl(mixed $value): ?string
+    {
+        $url = $this->nullableString($value);
+
+        return $url !== null
+            && filter_var($url, FILTER_VALIDATE_URL)
+            && in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true)
+                ? $url
+                : null;
     }
 
     private function addScore(array &$attributes, string $attribute, mixed $source, string $key): void

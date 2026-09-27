@@ -15,6 +15,8 @@ class FootballMatch extends Model
 
     public const TERMINAL_STATUSES = ['finished', 'cancelled', 'canceled', 'postponed', 'abandoned'];
 
+    public const SCHEDULED_STATUSES = ['scheduled', 'not_started'];
+
     public const LIVE_SYNC_LEAD_MINUTES = 20;
 
     public const LIVE_SYNC_WINDOW_HOURS = 6;
@@ -123,6 +125,16 @@ class FootballMatch extends Model
         return $query->where('status', 'finished');
     }
 
+    public function scopeForMatchCenterStatus(Builder $query, string $status): Builder
+    {
+        return match ($status) {
+            'live' => $query->where('is_live', true),
+            'upcoming' => $query->where('is_live', false)->whereIn('status', self::SCHEDULED_STATUSES),
+            'finished' => $query->where('status', 'finished'),
+            default => $query,
+        };
+    }
+
     public function isIndexable(): bool
     {
         $linkedTeamIsActive = static fn ($footballTeam): bool => $footballTeam->is_active
@@ -159,7 +171,27 @@ class FootballMatch extends Model
 
     public function isScheduled(): bool
     {
-        return in_array(strtolower($this->status), ['scheduled', 'not_started'], true);
+        return in_array(strtolower($this->status), self::SCHEDULED_STATUSES, true);
+    }
+
+    public function matchListStatusLabel(): string
+    {
+        if ($this->is_live) {
+            if ($this->isHalfTime()) {
+                return 'DEVRE';
+            }
+
+            return ($this->displayMinute() !== null ? $this->displayMinute()."' " : '').'CANLI';
+        }
+
+        return match (strtolower($this->status)) {
+            'finished' => 'MS',
+            'postponed' => 'ERT.',
+            'cancelled', 'canceled' => 'İPT.',
+            'abandoned' => 'YARIDA',
+            'scheduled', 'not_started' => 'Başlamadı',
+            default => mb_strtoupper($this->statusLabel(), 'UTF-8'),
+        };
     }
 
     public function livePollingStartsAt(): CarbonImmutable

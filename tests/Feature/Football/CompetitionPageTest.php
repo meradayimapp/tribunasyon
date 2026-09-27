@@ -187,17 +187,18 @@ class CompetitionPageTest extends TestCase
             ->assertUnprocessable();
     }
 
-    public function test_matches_page_links_to_nations_league_center_and_standings_cache_is_reused(): void
+    public function test_matches_page_group_header_links_to_nations_league_center_and_standings_cache_is_reused(): void
     {
         $competition = $this->competition();
         $home = $this->team('home', 'Ev');
         $away = $this->team('away', 'Deplasman');
         $this->match($competition, $home, $away, 'today', '2026-09-22 17:45:00');
 
-        $this->get(route('matches.index', ['competition' => FootballCompetition::NATIONS_LEAGUE_PROVIDER_ID]))
+        $this->get(route('matches.index', ['competition' => $competition->slug]))
             ->assertOk()
-            ->assertSee('Uluslar Ligi Merkezi')
-            ->assertSee(route('competitions.show', 'uluslar-ligi'), false);
+            ->assertSee(route('competitions.show', 'uluslar-ligi'), false)
+            ->assertDontSee('Uluslar Ligi Merkezi')
+            ->assertDontSee('Tüm fikstür ve puan durumu');
 
         $this->get(route('competitions.show', $competition->slug))->assertOk();
         $this->get(route('competitions.show', ['competition' => $competition->slug, 'tab' => 'puan-durumu']))->assertOk();

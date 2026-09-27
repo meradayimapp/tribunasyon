@@ -19,12 +19,30 @@ class FootballCompetition extends Model
 
     public const CONFERENCE_LEAGUE_PROVIDER_ID = 'c7b8o53flg36wbuevfzy3lb10';
 
+    public const PREMIER_LEAGUE_PROVIDER_ID = '2kwbbcootiqqgmrzs6o5inle5';
+
+    public const LA_LIGA_PROVIDER_ID = '34pl8szyvrbwcmfkuocjm3r6t';
+
+    public const SERIE_A_PROVIDER_ID = '1r097lpxe0xn03ihb7wi98kao';
+
+    public const BUNDESLIGA_PROVIDER_ID = '6by3h89i2eykc341oz7lv1ddd';
+
+    public const LIGUE_1_PROVIDER_ID = 'dm5ka0os1e3dxcp3vh05kmp33';
+
+    public const PRIMEIRA_LIGA_PROVIDER_ID = '2w4n0fgjq0wy8nttjw0td7s3z';
+
     public const FEATURED_PROVIDER_LEAGUE_IDS = [
         self::SUPER_LEAGUE_PROVIDER_ID,
         self::NATIONS_LEAGUE_PROVIDER_ID,
         self::CHAMPIONS_LEAGUE_PROVIDER_ID,
         self::EUROPA_LEAGUE_PROVIDER_ID,
         self::CONFERENCE_LEAGUE_PROVIDER_ID,
+        self::PREMIER_LEAGUE_PROVIDER_ID,
+        self::LA_LIGA_PROVIDER_ID,
+        self::SERIE_A_PROVIDER_ID,
+        self::BUNDESLIGA_PROVIDER_ID,
+        self::LIGUE_1_PROVIDER_ID,
+        self::PRIMEIRA_LIGA_PROVIDER_ID,
     ];
 
     protected $fillable = [
@@ -73,5 +91,19 @@ class FootballCompetition extends Model
     public function logoUrl(): ?string
     {
         return $this->provider_logo_url ?: app(MediaUrlResolver::class)->url($this->logo_path);
+    }
+
+    public function regionLabel(): string
+    {
+        if (filled($this->country)) {
+            return $this->country;
+        }
+
+        return in_array($this->provider_league_id, [
+            self::NATIONS_LEAGUE_PROVIDER_ID,
+            self::CHAMPIONS_LEAGUE_PROVIDER_ID,
+            self::EUROPA_LEAGUE_PROVIDER_ID,
+            self::CONFERENCE_LEAGUE_PROVIDER_ID,
+        ], true) ? 'Avrupa' : 'Uluslararası';
     }
 }

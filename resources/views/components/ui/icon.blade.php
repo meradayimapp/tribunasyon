@@ -57,6 +57,7 @@
         'chevron-left' => 'm15 18-6-6 6-6',
         'chevron-right' => 'm9 18 6-6-6-6',
         'calendar' => 'M6 2v4m12-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v15H3V6a2 2 0 0 1 2-2',
+        'filter' => 'M4 6h16M7 12h10m-7 6h4',
     ];
 @endphp
 @if($name === 'theme')

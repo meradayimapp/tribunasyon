@@ -18,6 +18,13 @@ class TodayScoresRibbon extends Component
 
     public function __construct(FootballDataService $service)
     {
+        if (request()->routeIs('matches.index')) {
+            $this->matches = [];
+            $this->pollingEnabled = false;
+
+            return;
+        }
+
         $matches = $service->matchesForDate(Carbon::today(FootballMatch::DISPLAY_TIMEZONE));
 
         $this->matches = $service->scoreRibbonPayload($matches);
