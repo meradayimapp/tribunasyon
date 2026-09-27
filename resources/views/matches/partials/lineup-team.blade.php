@@ -14,15 +14,11 @@
         @if(filled($formation))<span>{{ $formation }}</span>@endif
     </div>
     @if($pitchRows)
-        <div class="match-lineup-pitch" aria-label="{{ $team->resolved_name }} saha dizilişi">
+        <div class="match-lineup-pitch" role="group" aria-label="{{ $team->resolved_name }} saha dizilişi">
             @foreach($pitchRows as $row)
                 <div class="match-lineup-pitch-row">
                     @foreach($row as $player)
-                        @if(filled($player['profile_url'] ?? null))<a class="match-lineup-pitch-player match-lineup-player-link" href="{{ $player['profile_url'] }}" aria-label="{{ $player['name'] ?? 'Oyuncu' }} profiline git">@else<div class="match-lineup-pitch-player">@endif
-                            <span>{{ $player['number'] ?? '—' }}</span>
-                            <strong>{{ $player['name'] ?? 'Oyuncu' }}</strong>
-                            @if(isset($player['rating']))<small class="match-player-rating">{{ $player['rating'] }}</small>@endif
-                        @if(filled($player['profile_url'] ?? null))</a>@else</div>@endif
+                        <x-football.lineup-pitch-player :player="$player" />
                     @endforeach
                 </div>
             @endforeach

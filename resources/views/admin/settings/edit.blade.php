@@ -88,6 +88,22 @@
                     help="JPG, PNG veya WebP, en fazla 5 MB. Masaüstünde kırpılarak gösterilir."
                 />
             </div>
+
+            <div class="col-12"><div class="settings-divider"></div></div>
+            <div class="col-12">
+                <div class="settings-section-heading"><span>Maç Merkezi</span><h2>Kadro saha görünümü</h2><p>Maç Merkezi’nin Kadro sekmesinde oyuncuların yerleştiği saha görselini yönetin.</p></div>
+            </div>
+            <div class="col-md-8">
+                <x-admin.image-upload
+                    name="match_center_lineup_background"
+                    label="Kadro saha arka planı"
+                    :current-url="$settings->mediaUrl('match_center_lineup_background_path')"
+                    remove-name="remove_match_center_lineup_background"
+                    accept="image/jpeg,image/png,image/webp"
+                    preview-class="managed-image-preview--lineup-pitch"
+                    help="Önerilen boyut: 1080 × 1240 px. JPG, PNG veya WebP, en fazla 5 MB."
+                />
+            </div>
         </div>
 
         @if($errors->any())<div class="alert alert-danger mt-4">{{ $errors->first() }}</div>@endif

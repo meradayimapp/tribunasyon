@@ -526,18 +526,45 @@ window.matchLiveState = (url, initial, defaultTab = 'ozet') => ({
             const rows = this.formationRows(formation, starting);
             if (rows) {
                 const pitch = document.createElement('div'); pitch.className = 'match-lineup-pitch';
+                pitch.setAttribute('role', 'group');
+                pitch.setAttribute('aria-label', `${target.querySelector('.match-lineup-team-heading strong')?.textContent ?? 'Takım'} saha dizilişi`);
+                const pitchPlayer = (player) => {
+                    const href = profileUrl(player);
+                    const playerName = String(player.name ?? 'Oyuncu').trim() || 'Oyuncu';
+                    const card = document.createElement(href ? 'a' : 'div');
+                    card.className = `match-lineup-pitch-player${href ? ' match-lineup-player-link' : ''}`;
+                    if (href) {
+                        card.href = href;
+                        card.setAttribute('aria-label', `${playerName} profiline git`);
+                    }
+
+                    const avatar = document.createElement('span'); avatar.className = 'match-lineup-pitch-avatar';
+                    const fallback = document.createElement('span'); fallback.className = 'match-lineup-pitch-avatar-fallback'; fallback.setAttribute('aria-hidden', 'true');
+                    fallback.textContent = playerName.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join('').toLocaleUpperCase('tr-TR') || 'OY';
+                    const src = imageUrl(player);
+                    if (src) {
+                        const image = document.createElement('img'); image.src = src; image.alt = ''; image.loading = 'lazy'; image.decoding = 'async';
+                        fallback.hidden = true;
+                        image.onerror = () => { image.hidden = true; fallback.hidden = false; };
+                        avatar.append(image);
+                    }
+                    avatar.append(fallback);
+                    const number = document.createElement('b'); number.className = 'match-lineup-pitch-number'; number.textContent = String(player.number ?? '—'); avatar.append(number);
+
+                    const label = document.createElement('span'); label.className = 'match-lineup-pitch-label';
+                    const name = document.createElement('strong'); name.textContent = playerName; name.title = playerName; label.append(name);
+                    if (player.position_display) { const position = document.createElement('small'); position.textContent = String(player.position_display); label.append(position); }
+                    card.append(avatar, label);
+                    if (player.rating !== undefined && player.rating !== null) {
+                        const rating = document.createElement('small'); rating.className = 'match-player-rating'; rating.textContent = String(player.rating);
+                        rating.setAttribute('aria-label', `Oyuncu puanı ${player.rating}`); card.append(rating);
+                    }
+
+                    return card;
+                };
                 rows.forEach((players) => {
                     const row = document.createElement('div'); row.className = 'match-lineup-pitch-row';
-                    players.forEach((player) => {
-                        const href = profileUrl(player);
-                        const card = document.createElement(href ? 'a' : 'div'); card.className = `match-lineup-pitch-player${href ? ' match-lineup-player-link' : ''}`;
-                        if (href) { card.href = href; card.setAttribute('aria-label', `${player.name ?? 'Oyuncu'} profiline git`); }
-                        const number = document.createElement('span'); number.textContent = String(player.number ?? '—');
-                        const name = document.createElement('strong'); name.textContent = String(player.name ?? 'Oyuncu');
-                        card.append(number, name);
-                        if (player.rating !== undefined) { const rating = document.createElement('small'); rating.className = 'match-player-rating'; rating.textContent = String(player.rating); card.append(rating); }
-                        row.append(card);
-                    });
+                    players.forEach((player) => row.append(pitchPlayer(player)));
                     pitch.append(row);
                 });
                 target.append(pitch);

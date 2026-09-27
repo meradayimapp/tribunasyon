@@ -17,6 +17,7 @@ class SiteSetting extends Model
         'dark_logo_path',
         'login_image_path',
         'register_image_path',
+        'match_center_lineup_background_path',
     ];
 
     protected $fillable = ['site_name', ...self::MEDIA_COLUMNS];

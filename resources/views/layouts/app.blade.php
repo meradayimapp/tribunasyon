@@ -141,7 +141,8 @@
         </aside>
     @endauth
 
-    <main class="app-main">
+    @php($lineupBackgroundUrl = $siteSettings->mediaUrl('match_center_lineup_background_path'))
+    <main class="app-main" @if($lineupBackgroundUrl) style="--match-lineup-pitch-image: url('{{ $lineupBackgroundUrl }}')" @endif>
         @if(session('success'))<div class="flash-wrap"><div class="alert alert-success"><x-ui.icon name="check-circle" />{{ session('success') }}</div></div>@endif
         @if(session('status'))<div class="flash-wrap"><div class="alert alert-info"><x-ui.icon name="info" />{{ session('status') }}</div></div>@endif
         @yield('content')

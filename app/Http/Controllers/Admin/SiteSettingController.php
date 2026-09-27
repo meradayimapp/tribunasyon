@@ -22,6 +22,7 @@ class SiteSettingController extends Controller
         'dark_logo' => 'dark_logo_path',
         'login_image' => 'login_image_path',
         'register_image' => 'register_image_path',
+        'match_center_lineup_background' => 'match_center_lineup_background_path',
     ];
 
     public function edit(): View
@@ -40,7 +41,11 @@ class SiteSettingController extends Controller
         try {
             foreach (self::UPLOADS as $input => $column) {
                 if ($request->hasFile($input)) {
-                    $directory = in_array($column, ['login_image_path', 'register_image_path'], true) ? 'branding/auth' : 'branding';
+                    $directory = match ($column) {
+                        'login_image_path', 'register_image_path' => 'branding/auth',
+                        'match_center_lineup_background_path' => 'branding/match-center',
+                        default => 'branding',
+                    };
                     $data[$column] = $media->store($request->file($input), $directory);
                     $storedPaths[] = $data[$column];
                 } elseif ($request->boolean("remove_{$input}")) {
@@ -77,7 +82,7 @@ class SiteSettingController extends Controller
         $rules = ['site_name' => ['required', 'string', 'max:100']];
 
         foreach (self::UPLOADS as $input => $column) {
-            $types = in_array($column, ['login_image_path', 'register_image_path'], true)
+            $types = in_array($column, ['login_image_path', 'register_image_path', 'match_center_lineup_background_path'], true)
                 ? ['jpg', 'jpeg', 'png', 'webp']
                 : ['png', 'webp'];
             $rules[$input] = ['nullable', File::image()->types($types)->max(5 * 1024)];

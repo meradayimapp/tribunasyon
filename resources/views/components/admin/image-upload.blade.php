@@ -6,13 +6,14 @@
     'removeName' => 'remove_logo',
     'help' => 'PNG veya WebP, en fazla 5 MB.',
     'accept' => 'image/png,image/webp',
+    'previewClass' => null,
 ])
 @php($inputId = 'upload-'.str_replace(['[', ']'], '-', $name))
 
 <div class="managed-image-upload" x-data="imageUploadPreview(@js($currentUrl))">
     <label class="form-label" for="{{ $inputId }}">{{ $label }}</label>
     <div class="managed-image-upload-body">
-        <div class="managed-image-preview" :class="{ 'has-image': preview }">
+        <div @class(['managed-image-preview', $previewClass]) :class="{ 'has-image': preview }">
             <img x-cloak x-show="preview" :src="preview" alt="{{ $label }} önizlemesi">
             <x-ui.icon name="image" x-show="!preview" />
         </div>

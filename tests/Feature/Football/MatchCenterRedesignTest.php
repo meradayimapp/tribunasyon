@@ -6,6 +6,7 @@ use App\Models\FootballCompetition;
 use App\Models\FootballMatch;
 use App\Models\FootballTeam;
 use App\Models\Player;
+use App\Models\SiteSetting;
 use App\Services\Football\FootballLiveSynchronizer;
 use App\Services\Football\MatchFormationLayout;
 use App\Services\Football\PlayerPositionFormatter;
@@ -14,6 +15,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class MatchCenterRedesignTest extends TestCase
@@ -184,7 +186,7 @@ class MatchCenterRedesignTest extends TestCase
     public function test_complete_provider_ordered_lineup_renders_pitch_and_live_chat_is_default(): void
     {
         $players = array_merge(
-            [['id' => 'keeper-1', 'name' => 'Kaleci', 'position' => 'Goalkeeper', 'number' => '1']],
+            [['id' => 'keeper-1', 'name' => 'Kaleci', 'position' => 'Goalkeeper', 'number' => '1', 'image' => 'https://cdn.test/keeper.png']],
             array_fill(0, 4, ['name' => 'Savunmacı', 'position' => 'Defender']),
             array_fill(0, 3, ['name' => 'Orta Saha', 'position' => 'Midfielder']),
             array_fill(0, 3, ['name' => 'Forvet', 'position' => 'Forward']),
@@ -193,15 +195,50 @@ class MatchCenterRedesignTest extends TestCase
             'status' => 'live', 'is_live' => true, 'status_display' => 'CANLI',
             'lineups' => ['home' => ['starting' => $players, 'subs' => []], 'away' => ['starting' => [], 'subs' => []], 'formation' => ['home' => 433]],
         ]);
-        $keeper = Player::factory()->create(['provider_player_id' => 'keeper-1', 'slug' => 'saha-kalecisi']);
+        $keeper = Player::factory()->create([
+            'provider_player_id' => 'keeper-1',
+            'slug' => 'saha-kalecisi',
+            'photo_path' => 'players/photos/keeper-manual.png',
+            'provider_image_url' => 'https://cdn.test/keeper-provider.png',
+        ]);
         $this->fakeStatic();
 
         $html = $this->get(route('matches.show', $match))->assertOk()
             ->assertSee('match-lineup-pitch', false)->assertSee('Canlı Maç Sohbeti')
-            ->assertSee(route('players.show', $keeper), false)->getContent();
+            ->assertSee('match-lineup-pitch-avatar', false)
+            ->assertSee('match-lineup-pitch-number', false)
+            ->assertSee('keeper-manual.png', false)
+            ->assertDontSee('https://cdn.test/keeper.png', false)
+            ->assertDontSee('https://cdn.test/keeper-provider.png', false)
+            ->assertSee(route('players.show', $keeper), false)
+            ->assertDontSee('--match-lineup-pitch-image:', false)
+            ->getContent();
         $this->assertStringContainsString('matchLiveState(', $html);
         $this->assertMatchesRegularExpression('/<a class="match-lineup-pitch-player match-lineup-player-link" href="[^"]*saha-kalecisi"/s', $html);
+        $this->assertMatchesRegularExpression('/<div class="match-lineup-pitch-player">.*?Savunmacı/s', $html);
         $this->assertMatchesRegularExpression('/id="match-panel-sohbet"[^>]*x-show="activeTab === \'sohbet\'"[^>]*>/s', $html);
+    }
+
+    public function test_match_center_uses_managed_lineup_background_when_the_file_exists(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('branding/match-center/custom-pitch.webp', 'pitch-image');
+        $settings = SiteSetting::create([
+            'id' => SiteSetting::SINGLETON_ID,
+            'site_name' => 'Tribünasyon',
+            'match_center_lineup_background_path' => 'branding/match-center/custom-pitch.webp',
+        ]);
+        [$match] = $this->match();
+        $this->fakeStatic();
+
+        $backgroundUrl = $settings->mediaUrl('match_center_lineup_background_path');
+
+        $this->get(route('matches.show', $match))->assertOk()
+            ->assertSee("--match-lineup-pitch-image: url('{$backgroundUrl}')", false);
+
+        Storage::disk('public')->delete('branding/match-center/custom-pitch.webp');
+        $this->get(route('matches.show', $match))->assertOk()
+            ->assertDontSee('--match-lineup-pitch-image:', false);
     }
 
     public function test_lineup_uses_only_provider_player_id_for_profile_links_and_one_bulk_lookup(): void
